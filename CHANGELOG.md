@@ -11,6 +11,7 @@ For detailed usage instructions, see the [Usage Guide](docs/USAGE.md).
 - Floating key previews in Keyboard + Touchpad mode, including corner actions and Shift/AltGr/Fn labels.
 
 ### Fixed
+- Smoothly animate keyboard/touchpad width changes when using the panel resize arrows.
 - Keep the pointer stationary after two-finger scrolling until all fingers are lifted, and avoid a false click on scroll release.
 - Play keyboard sounds through the media volume stream when the phone ringer is silent.
 

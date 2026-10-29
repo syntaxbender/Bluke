@@ -2,6 +2,9 @@ package dev.arnv.bluke.ui
 
 import android.content.SharedPreferences
 import android.view.HapticFeedbackConstants
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -95,8 +98,13 @@ fun KeyboardTouchpadView(
         BoxWithConstraints(modifier = modifier) {
             val navigationHeight = maxOf(44.dp, (maxHeight - 4.dp) / keyboardRows + 4.dp)
             val availableWidth = (maxWidth.value - SplitPanePolicy.DIVIDER_WIDTH_DP).coerceAtLeast(1f)
-            val keyboardFraction = SplitPanePolicy.keyboardFraction(splitStep, availableWidth)
-            val keyboardPercent = (keyboardFraction * 100).roundToInt()
+            val targetKeyboardFraction = SplitPanePolicy.keyboardFraction(splitStep, availableWidth)
+            val keyboardFraction by animateFloatAsState(
+                targetValue = targetKeyboardFraction,
+                animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
+                label = "keyboardTouchpadSplit",
+            )
+            val keyboardPercent = (targetKeyboardFraction * 100).roundToInt()
             val leftStep = SplitPanePolicy.nextStep(splitStep, -1, availableWidth)
             val rightStep = SplitPanePolicy.nextStep(splitStep, 1, availableWidth)
             fun resize(step: Int?) {

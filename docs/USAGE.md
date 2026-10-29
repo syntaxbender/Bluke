@@ -57,7 +57,7 @@ An authentic mechanical typing surface featuring tactile haptics, realistic acou
 
 This landscape screen places a touch keyboard on the left and a touchpad on the right. Letter keys use equal widths, with similar digit widths. Four arrow keys sit below the touchpad and align with the keyboard's bottom edge.
 
-- **Resize:** The narrow arrows between the panels adjust their widths in up to two steps per direction, normally five percentage points per step. Small screens apply tighter limits. The selection is remembered.
+- **Resize:** The narrow arrows between the panels smoothly adjust their widths in up to two steps per direction, normally five percentage points per step. Repeated taps move toward the latest selected width. Small screens apply tighter limits. The selection is remembered.
 - **Shortcuts:** Tap Ctrl, Shift, Alt, AltGr or Win once to keep it pressed, then tap the other keys. Tap the same modifier again to release it. Active modifiers use the theme accent and a lock icon. Leaving the screen, changing its layout or size, changing the Bluetooth connection, or backgrounding the app releases them.
 - **Corner gestures:** Touch anywhere on a key and slide diagonally before lifting. Arrow corners provide Home, End, Page Up and Page Down. Win's upper-left corner holds Fn while sliding/holding; Caps provides Insert and Scroll Lock. Delete stays a direct key on the top row. Modifier combinations also apply to corner actions.
 - **Repeated navigation:** Hold the middle of an arrow for 350 ms to keep it pressed. The host supplies normal key repeat.
