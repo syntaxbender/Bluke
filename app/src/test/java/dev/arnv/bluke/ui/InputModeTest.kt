@@ -7,12 +7,13 @@ import org.junit.Test
 
 class InputModeTest {
     @Test
-    fun splitKeyboardIsAvailableWithoutChangingDefaultModes() {
+    fun splitKeyboardIsIncludedInTheDefaultModes() {
         assertEquals(InputMode.KEYBOARD, InputMode.fromId(0))
         assertEquals("Keyboard", InputMode.KEYBOARD.displayName)
         assertEquals(InputMode.SPLIT_KEYBOARD, InputMode.fromId(5))
-        assertFalse(normalizeInputModeKeys(null).contains(InputMode.SPLIT_KEYBOARD.preferenceKey))
-        assertEquals(setOf("keyboard", "touchpad", "gamepad", "media_presentation"), defaultInputModeKeys)
+        assertTrue(normalizeInputModeKeys(null).contains(InputMode.SPLIT_KEYBOARD.preferenceKey))
+        assertEquals(setOf("keyboard", "touchpad", "gamepad", "media_presentation", InputMode.SPLIT_KEYBOARD.preferenceKey), defaultInputModeKeys)
+        assertEquals(defaultInputModeKeys, normalizeInputModeKeys(setOf("keyboard", "touchpad", "gamepad", "media_presentation")))
     }
 
     @Test

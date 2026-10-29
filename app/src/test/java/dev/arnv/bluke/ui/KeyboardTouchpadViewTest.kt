@@ -190,13 +190,14 @@ class KeyboardTouchpadViewTest {
         assertPanelsFit()
     }
 
-    @Test fun defaultKeyboardStillOpensTheOriginalMechanicalLayout() {
+    @Test fun theOriginalMechanicalKeyboardCanStillBeSelected() {
         context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE).edit()
             .putInt("last_run_version_code", BuildConfig.VERSION_CODE)
             .putInt(HID_DESCRIPTOR_REVISION_PREFERENCE, CURRENT_HID_DESCRIPTOR_REVISION)
             .putBoolean("key_sound_enabled", false)
             .putStringSet("cycle_connection_modes", defaultInputModeKeys)
             .putInt("launch_mode", InputMode.KEYBOARD.id)
+            .putBoolean(SPLIT_KEYBOARD_DEFAULT_MIGRATED, true)
             .apply()
         ReflectionHelpers.getField<MutableStateFlow<BluetoothState>>(manager, "_serviceState").value =
             BluetoothState.ReadyDisconnected
@@ -213,19 +214,19 @@ class KeyboardTouchpadViewTest {
         }
     }
 
-    @Test fun launchButtonOpensBothPanelsAndCloseReturnsToSetup() {
+    @Test fun freshInstallSelectsTheSplitKeyboardAndLaunchesBothPanels() {
         context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE).edit()
+            .clear()
             .putInt("last_run_version_code", BuildConfig.VERSION_CODE)
             .putInt(HID_DESCRIPTOR_REVISION_PREFERENCE, CURRENT_HID_DESCRIPTOR_REVISION)
             .putBoolean("key_sound_enabled", false)
-            .putStringSet("cycle_connection_modes", defaultInputModeKeys + InputMode.SPLIT_KEYBOARD.preferenceKey)
-            .putInt("launch_mode", InputMode.SPLIT_KEYBOARD.id)
             .apply()
         ReflectionHelpers.getField<MutableStateFlow<BluetoothState>>(manager, "_serviceState").value =
             BluetoothState.ReadyDisconnected
         val sound = KeyboardSoundSynthesizer(context)
         try {
             compose.setContent { MyApplicationTheme { HomeScreen(manager, sound) } }
+            compose.onNodeWithText("Launch Keyboard + Touchpad").assertIsDisplayed()
             compose.onNodeWithTag("start_keyboard_btn").performClick()
             assertPanelsFit()
             compose.onRoot().captureRoboImage(filePath = "build/outputs/screenshots/keyboard-touchpad-screen.png")

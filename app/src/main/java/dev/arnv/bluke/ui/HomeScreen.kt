@@ -122,7 +122,7 @@ fun HomeScreen(
     var lockSyncMode by remember { mutableStateOf(sharedPrefs.getString("lock_sync_mode", "host") ?: "host") }
     var launchMode by rememberSaveable {
         val enabledModes = sharedPrefs.enabledInputModes().map(InputMode::id)
-        val savedMode = sharedPrefs.getInt("launch_mode", InputMode.KEYBOARD.id)
+        val savedMode = sharedPrefs.getInt("launch_mode", InputMode.SPLIT_KEYBOARD.id)
         mutableIntStateOf(savedMode.takeIf(enabledModes::contains) ?: enabledModes.first())
     }
 
@@ -158,7 +158,7 @@ fun HomeScreen(
                 )
                 selectedKeyboardTheme = keyboardThemeRepository.selectedTheme()
                 val enabledModes = sharedPrefs.enabledInputModes().map(InputMode::id)
-                val savedLaunchMode = sharedPrefs.getInt("launch_mode", 0)
+                val savedLaunchMode = sharedPrefs.getInt("launch_mode", InputMode.SPLIT_KEYBOARD.id)
                 launchMode = if (enabledModes.contains(savedLaunchMode)) savedLaunchMode else enabledModes.first()
                 devModeRefreshTrigger++
             }

@@ -51,9 +51,9 @@ An authentic mechanical typing surface featuring tactile haptics, realistic acou
 
 ---
 
-### Keyboard + Touchpad (optional)
+### Keyboard + Touchpad
 
-Open **Keyboard**, hold the toolbar's mode button to open **Input mode cycle**, and enable **Keyboard + Touchpad**. Cycle to it and launch it. The four default modes and the original Mechanical Keyboard remain available with their existing settings.
+**Keyboard + Touchpad** is selected and enabled by default. Tap **Launch Keyboard + Touchpad** on the home screen. Existing installations select this mode once on upgrade and retain their other enabled modes. Later manual mode selections are remembered. The original Mechanical Keyboard, Touchpad, Gamepad and Multimedia modes remain available in the mode cycle.
 
 This landscape screen places a touch keyboard on the left and a touchpad on the right. Letter keys use equal widths, with similar digit widths. Four arrow keys sit below the touchpad and align with the keyboard's bottom edge.
 
