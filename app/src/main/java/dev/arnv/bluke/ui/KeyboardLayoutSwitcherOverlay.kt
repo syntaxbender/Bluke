@@ -6,7 +6,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 internal fun KeyboardLayoutSwitcherOverlay(
     visible: Boolean,
     selectedLayout: KeyboardCharacterLayout,
@@ -49,7 +51,7 @@ internal fun KeyboardLayoutSwitcherOverlay(
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     KeyboardCharacterLayout.entries.forEach { layout ->
                         val selected = layout == selectedLayout
                         Text(

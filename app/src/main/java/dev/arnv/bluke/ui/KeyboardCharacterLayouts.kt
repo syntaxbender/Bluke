@@ -1,5 +1,7 @@
 package dev.arnv.bluke.ui
 
+import java.util.Locale
+
 const val KEYBOARD_CHARACTER_LAYOUT_PREFERENCE = "keyboard_character_layout"
 
 enum class KeyboardCharacterLayout(
@@ -8,6 +10,7 @@ enum class KeyboardCharacterLayout(
     val hostLayoutName: String,
 ) {
     US_QWERTY("us_qwerty", "QWERTY", "English (US)"),
+    TURKISH_Q("tr_q", "Türkçe Q", "Turkish (Q)"),
     FRENCH_AZERTY("fr_azerty", "AZERTY", "French"),
     GERMAN_QWERTZ("de_qwertz", "QWERTZ", "German"),
     DVORAK("dvorak", "Dvorak", "Dvorak"),
@@ -20,12 +23,19 @@ enum class KeyboardCharacterLayout(
     }
 
     fun next(): KeyboardCharacterLayout = entries[(ordinal + 1) % entries.size]
+
+    fun displayLetter(legend: String, uppercase: Boolean): String {
+        val locale = if (this == TURKISH_Q) Locale.forLanguageTag("tr") else Locale.ROOT
+        return if (uppercase) legend.uppercase(locale) else legend.lowercase(locale)
+    }
 }
 
 private data class KeyLegend(
     val normal: String,
     val shifted: String = "",
     val outputKeyCode: Int? = outputKeyCodeForLegend(normal),
+    val altGr: String = "",
+    val shiftedAltGr: String = "",
 )
 
 internal fun List<List<KeyLayoutInfo>>.withCharacterLayout(
@@ -40,6 +50,8 @@ internal fun List<List<KeyLayoutInfo>>.withCharacterLayout(
                 key.copy(
                     legend = legend.normal,
                     shiftedLegend = legend.shifted,
+                    altGrLegend = legend.altGr,
+                    shiftedAltGrLegend = legend.shiftedAltGr,
                     keyCode = legend.outputKeyCode ?: key.keyCode,
                 )
             } ?: key
@@ -49,6 +61,37 @@ internal fun List<List<KeyLayoutInfo>>.withCharacterLayout(
 
 private fun KeyboardCharacterLayout.legendOverrides(): Map<Int, KeyLegend> = when (this) {
     KeyboardCharacterLayout.US_QWERTY -> emptyMap()
+    KeyboardCharacterLayout.TURKISH_Q -> mapOf(
+        // Windows Turkish Q levels: https://github.com/unicode-org/cldr/blob/release-43/keyboards/windows/tr-t-k0-windows.xml
+        // These legends describe the host layout; Bluetooth still sends the original HID usage and modifiers.
+        physicalLegend(KeyboardLayouts.KEY_GRAVE, "\"", "é", "<"),
+        physicalLegend(KeyboardLayouts.KEY_1, "1", "!", ">"),
+        physicalLegend(KeyboardLayouts.KEY_2, "2", "'", "£"),
+        physicalLegend(KeyboardLayouts.KEY_3, "3", "^", "#"),
+        physicalLegend(KeyboardLayouts.KEY_4, "4", "+", "$"),
+        physicalLegend(KeyboardLayouts.KEY_5, "5", "%", "½"),
+        physicalLegend(KeyboardLayouts.KEY_6, "6", "&"),
+        physicalLegend(KeyboardLayouts.KEY_7, "7", "/", "{"),
+        physicalLegend(KeyboardLayouts.KEY_8, "8", "(", "["),
+        physicalLegend(KeyboardLayouts.KEY_9, "9", ")", "]"),
+        physicalLegend(KeyboardLayouts.KEY_0, "0", "=", "}"),
+        physicalLegend(KeyboardLayouts.KEY_MINUS, "*", "?", "\\"),
+        physicalLegend(KeyboardLayouts.KEY_EQUAL, "-", "_", "|"),
+        physicalLegend(KeyboardLayouts.KEY_Q, "Q", altGr = "@"),
+        physicalLegend(KeyboardLayouts.KEY_E, "E", altGr = "€"),
+        physicalLegend(KeyboardLayouts.KEY_T, "T", altGr = "₺"),
+        physicalLegend(KeyboardLayouts.KEY_I, "ı", altGr = "i", shiftedAltGr = "İ"),
+        physicalLegend(KeyboardLayouts.KEY_LBRACKET, "ğ", altGr = "¨"),
+        physicalLegend(KeyboardLayouts.KEY_RBRACKET, "ü", altGr = "~"),
+        physicalLegend(KeyboardLayouts.KEY_A, "A", altGr = "æ", shiftedAltGr = "Æ"),
+        physicalLegend(KeyboardLayouts.KEY_S, "S", altGr = "ß"),
+        physicalLegend(KeyboardLayouts.KEY_SEMICOLON, "ş", altGr = "´"),
+        physicalLegend(KeyboardLayouts.KEY_APOSTROPHE, "i"),
+        physicalLegend(KeyboardLayouts.KEY_BACKSLASH, ",", ";", "`"),
+        physicalLegend(KeyboardLayouts.KEY_COMMA, "ö"),
+        physicalLegend(KeyboardLayouts.KEY_PERIOD, "ç"),
+        physicalLegend(KeyboardLayouts.KEY_SLASH, ".", ":"),
+    )
     KeyboardCharacterLayout.GERMAN_QWERTZ -> mapOf(
         KeyboardLayouts.KEY_Y to KeyLegend("Z"),
         KeyboardLayouts.KEY_Z to KeyLegend("Y"),
@@ -146,7 +189,9 @@ private fun physicalLegend(
     keyCode: Int,
     normal: String,
     shifted: String = "",
-): Pair<Int, KeyLegend> = keyCode to KeyLegend(normal, shifted, keyCode)
+    altGr: String = "",
+    shiftedAltGr: String = "",
+): Pair<Int, KeyLegend> = keyCode to KeyLegend(normal, shifted, keyCode, altGr, shiftedAltGr)
 
 private fun legendMap(vararg entries: Pair<Int, String>): Map<Int, KeyLegend> =
     entries.associate { (keyCode, legend) -> keyCode to KeyLegend(legend) }

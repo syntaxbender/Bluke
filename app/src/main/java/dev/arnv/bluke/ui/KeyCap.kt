@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
 
 @Composable
 fun KeyCap(
@@ -30,7 +31,9 @@ fun KeyCap(
     isSelected: Boolean = false,
     baseUnitWidth: androidx.compose.ui.unit.Dp,
     modifier: Modifier = Modifier,
-    glowColor: Color? = null
+    glowColor: Color? = null,
+    altGrLegend: String = "",
+    shiftedAltGrLegend: String = "",
 ) {
     val keyBorderColor = keyBgColor.darker()
     
@@ -171,7 +174,48 @@ fun KeyCap(
                     ),
                 )
             }
+            AlternateKeyLegends(
+                legend = legend,
+                shiftedLegend = "", // The mechanical key already stacks Shift above its primary label.
+                altGrLegend = altGrLegend,
+                shiftedAltGrLegend = shiftedAltGrLegend,
+                color = legendColor,
+                fontSize = shiftFontSize,
+            )
         }
+    }
+}
+
+/** Symbol hints are visual labels, independent of the swipe actions and HID modifier handling. */
+@Composable
+private fun BoxScope.AlternateKeyLegends(
+    legend: String,
+    shiftedLegend: String,
+    altGrLegend: String,
+    shiftedAltGrLegend: String,
+    color: Color,
+    fontSize: TextUnit,
+) {
+    listOf(
+        Triple("shift", shiftedLegend, Alignment.TopEnd),
+        Triple("altgr", altGrLegend, Alignment.BottomEnd),
+        Triple("shift_altgr", shiftedAltGrLegend, Alignment.BottomStart),
+    ).filter { it.second.isNotEmpty() }.forEach { (level, symbol, alignment) ->
+        Text(
+            text = symbol,
+            color = color.copy(alpha = 0.75f),
+            fontSize = fontSize,
+            lineHeight = fontSize * 1.25f,
+            letterSpacing = 0.sp,
+            fontWeight = FontWeight.Normal,
+            style = androidx.compose.ui.text.TextStyle(
+                platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false),
+            ),
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier.align(alignment).padding(horizontal = 4.dp, vertical = 2.dp)
+                .testTag("${level}_$legend"),
+        )
     }
 }
 

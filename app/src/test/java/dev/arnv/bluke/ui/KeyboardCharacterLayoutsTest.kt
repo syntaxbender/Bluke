@@ -71,12 +71,31 @@ class KeyboardCharacterLayoutsTest {
     @Test
     fun nextCyclesThroughEveryTypingLayout() {
         assertEquals(
-            KeyboardCharacterLayout.FRENCH_AZERTY,
+            KeyboardCharacterLayout.TURKISH_Q,
             KeyboardCharacterLayout.US_QWERTY.next(),
         )
         assertEquals(
             KeyboardCharacterLayout.US_QWERTY,
             KeyboardCharacterLayout.RUSSIAN_JCUKEN.next(),
         )
+    }
+
+    @Test fun turkishQUsesTurkishLegendsAndPhysicalHidUsages() {
+        val keys = KeyboardLayouts.getLayout(KeyboardLayoutType.OBLIVION_75, KeyboardCharacterLayout.TURKISH_Q).flatten()
+        mapOf(KeyboardLayouts.KEY_I to "ı", KeyboardLayouts.KEY_LBRACKET to "ğ",
+            KeyboardLayouts.KEY_RBRACKET to "ü", KeyboardLayouts.KEY_SEMICOLON to "ş",
+            KeyboardLayouts.KEY_APOSTROPHE to "i", KeyboardLayouts.KEY_COMMA to "ö",
+            KeyboardLayouts.KEY_PERIOD to "ç").forEach { (code, legend) ->
+            val key = keys.single { it.physicalKeyCode == code }
+            assertEquals(legend, key.legend)
+            assertEquals(code, key.keyCode)
+        }
+        assertEquals("'", keys.single { it.physicalKeyCode == KeyboardLayouts.KEY_2 }.shiftedLegend)
+        assertEquals("*", keys.single { it.physicalKeyCode == KeyboardLayouts.KEY_MINUS }.legend)
+        assertEquals(KeyboardCharacterLayout.TURKISH_Q, KeyboardCharacterLayout.fromPreference("tr_q"))
+        assertEquals("İ", KeyboardCharacterLayout.TURKISH_Q.displayLetter("i", true))
+        assertEquals("I", KeyboardCharacterLayout.TURKISH_Q.displayLetter("ı", true))
+        assertEquals("i", KeyboardCharacterLayout.TURKISH_Q.displayLetter("İ", false))
+        assertEquals("ı", KeyboardCharacterLayout.TURKISH_Q.displayLetter("I", false))
     }
 }

@@ -193,7 +193,9 @@ data class KeyLayoutInfo(
     val y: Float = 0.0f,
     val keyCode: Int = 0,
     val physicalKeyCode: Int = keyCode,
-    val category: KeyColorCategory = KeyColorCategory.ALPHA
+    val category: KeyColorCategory = KeyColorCategory.ALPHA,
+    val altGrLegend: String = "",
+    val shiftedAltGrLegend: String = "",
 )
 
 object KeyboardLayouts {
@@ -284,6 +286,7 @@ object KeyboardLayouts {
     const val KEY_DOWN = 0x51
     const val KEY_UP = 0x52
     const val KEY_NUMLOCK = 0x53
+    const val KEY_NONUS_BACKSLASH = 0x64
 
     // Modifiers (Bits in byte 0)
     const val MOD_LCTRL = 0xE0

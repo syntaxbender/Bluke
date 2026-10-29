@@ -168,7 +168,7 @@ fun KeyboardView(
                     val isUppercase = isCapsLockActive xor isShiftActive
                     val isAlphabetic = key.legend.length == 1 && key.legend[0].isLetter()
                     val baseDisplayLegend = if (isAlphabetic) {
-                        if (isUppercase) key.legend.uppercase() else key.legend.lowercase()
+                        characterLayout.displayLetter(key.legend, isUppercase)
                     } else {
                         key.legend
                     }
@@ -192,6 +192,8 @@ fun KeyboardView(
                     KeyCap(
                         legend = displayLegend,
                         shiftedLegend = displayShiftedLegend,
+                        altGrLegend = if (fnLegend == null) key.altGrLegend else "",
+                        shiftedAltGrLegend = if (fnLegend == null) key.shiftedAltGrLegend else "",
                         width = keyWidth,
                         height = keyHeight,
                         isPressed = isPressed,
