@@ -121,7 +121,10 @@ internal class CornerKeyGesture(
             val action = actionFor(touch)
             // A centre hold or a modifier corner was already sent; pending taps/swipes need one pulse.
             if (touch.heldCode == null && !(stickyModifiers && action in 0xE0..0xE7)) {
-                val withModifiers = heldActive + touch.modifiers
+                val inherited = heldActive + touch.modifiers
+                val characterModifiers = touch.corner?.let { touch.key.corners.getValue(it).characterModifiers }
+                val withModifiers = if (characterModifiers == null) inherited else
+                    (inherited - CHARACTER_LEVEL_MODIFIERS) + characterModifiers
                 reconcile(withModifiers)
                 reconcile(withModifiers + action)
                 reconcile(withModifiers)
@@ -166,5 +169,10 @@ internal class CornerKeyGesture(
     private fun actionFor(touch: Touch): Int = touch.committedCode
         ?: touch.corner?.let { touch.key.corners.getValue(it).keyCode } ?: touch.key.keyCode
 
-    companion object { const val HOLD_DELAY_MILLIS = 350L }
+    companion object {
+        const val HOLD_DELAY_MILLIS = 350L
+        private val CHARACTER_LEVEL_MODIFIERS = setOf(
+            KeyboardLayouts.MOD_LSHIFT, KeyboardLayouts.MOD_RSHIFT, KeyboardLayouts.MOD_RALT,
+        )
+    }
 }

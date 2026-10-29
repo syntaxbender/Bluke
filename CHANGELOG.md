@@ -9,6 +9,7 @@ For detailed usage instructions, see the [Usage Guide](docs/USAGE.md).
 - Default landscape Keyboard + Touchpad mode with adjustable panel widths, evenly sized typing keys, corner-swipe navigation and latching modifiers.
 - Turkish Q typing layout with locale-aware casing and visible Shift/AltGr symbol hints.
 - Floating key previews in Keyboard + Touchpad mode, including corner actions and Shift/AltGr/Fn labels.
+- Type visible Shift/AltGr characters by sliding to their key corners with one finger; required modifiers are applied temporarily and existing modifier latches are restored.
 
 ### Fixed
 - Smoothly animate keyboard/touchpad width changes when using the panel resize arrows.

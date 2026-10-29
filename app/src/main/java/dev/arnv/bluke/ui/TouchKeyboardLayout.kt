@@ -2,7 +2,21 @@ package dev.arnv.bluke.ui
 
 enum class KeyCorner { TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT }
 
-data class CornerAction(val legend: String, val keyCode: Int)
+data class CornerAction(
+    val legend: String,
+    val keyCode: Int,
+    // Null inherits the chord; character corners select an exact Shift/AltGr level.
+    val characterModifiers: Set<Int>? = null,
+)
+
+internal fun characterCornerActions(key: KeyLayoutInfo): Map<KeyCorner, CornerAction> = buildMap {
+    fun add(corner: KeyCorner, legend: String, vararg modifiers: Int) {
+        if (legend.isNotEmpty()) put(corner, CornerAction(legend, key.keyCode, modifiers.toSet()))
+    }
+    add(KeyCorner.TOP_RIGHT, key.shiftedLegend, KeyboardLayouts.MOD_LSHIFT)
+    add(KeyCorner.BOTTOM_RIGHT, key.altGrLegend, KeyboardLayouts.MOD_RALT)
+    add(KeyCorner.BOTTOM_LEFT, key.shiftedAltGrLegend, KeyboardLayouts.MOD_LSHIFT, KeyboardLayouts.MOD_RALT)
+}
 
 data class TouchKeyboardKey(
     val layout: KeyLayoutInfo,
@@ -81,7 +95,10 @@ fun touchKeyboardLayout(
     ).toMutableMap()
     if (characterLayout == KeyboardCharacterLayout.TURKISH_Q) {
         corners[KeyboardLayouts.KEY_CAPSLOCK] = corners.getValue(KeyboardLayouts.KEY_CAPSLOCK) +
-            (KeyCorner.TOP_LEFT to CornerAction("< >", KeyboardLayouts.KEY_NONUS_BACKSLASH))
+            mapOf(
+                KeyCorner.TOP_LEFT to CornerAction("< >", KeyboardLayouts.KEY_NONUS_BACKSLASH),
+                KeyCorner.BOTTOM_RIGHT to CornerAction(">", KeyboardLayouts.KEY_NONUS_BACKSLASH, setOf(KeyboardLayouts.MOD_LSHIFT)),
+            )
     }
     val width = 14f
     val result = mutableListOf<TouchKeyboardKey>()
@@ -102,7 +119,12 @@ fun touchKeyboardLayout(
         row.forEachIndexed { column, original ->
             val keyWidth = weights[column] * scale
             val positioned = original.copy(x = x, y = index.toFloat(), widthRatio = keyWidth, heightRatio = 1f)
-            result += TouchKeyboardKey(positioned, corners[positioned.physicalKeyCode].orEmpty())
+            val characterCorners = characterCornerActions(positioned)
+            result += TouchKeyboardKey(
+                positioned,
+                characterCorners + corners[positioned.physicalKeyCode].orEmpty(),
+                holdPrimaryAfterDelay = characterCorners.isNotEmpty(),
+            )
             x += keyWidth
         }
     }

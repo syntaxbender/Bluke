@@ -283,4 +283,70 @@ class CornerKeyGestureTest {
         gesture.process(emptyList(), 2_200)
         assertEquals(listOf(KeyboardLayouts.KEY_FN to true, KeyboardLayouts.KEY_FN to false), events)
     }
+
+    @Test fun characterCornersSendTheirOwnModifiersOnlyForTheCharacterPulse() {
+        listOf(
+            CornerAction("!", KeyboardLayouts.KEY_1, setOf(KeyboardLayouts.MOD_LSHIFT)),
+            CornerAction("@", KeyboardLayouts.KEY_Q, setOf(KeyboardLayouts.MOD_RALT)),
+            CornerAction("Æ", KeyboardLayouts.KEY_A, setOf(KeyboardLayouts.MOD_LSHIFT, KeyboardLayouts.MOD_RALT)),
+        ).forEach { action ->
+            val f = Fixture(mapOf(KeyCorner.TOP_RIGHT to action))
+            f.down(0, 50f)
+            f.move(0, 80f, 20f)
+            assertTrue("Selecting a character must not emit its primary key", f.events.isEmpty())
+            f.up(0)
+            val modifiers = action.characterModifiers!!.toList()
+            assertEquals(modifiers.map { it to true } + listOf(action.keyCode to true, action.keyCode to false) +
+                modifiers.map { it to false }, f.events)
+            assertTrue(f.gesture.pressedKeyCodes.isEmpty())
+            assertTrue(f.gesture.latchedModifiers.isEmpty())
+            f.down(1, 150f)
+            f.up(1)
+            assertEquals(listOf(KeyboardLayouts.KEY_B to true, KeyboardLayouts.KEY_B to false), f.events.takeLast(2))
+        }
+    }
+
+    @Test fun temporaryCharacterModifiersPreserveCtrlAltAndWinThroughTheWholeChord() {
+        val f = Fixture(mapOf(KeyCorner.TOP_RIGHT to CornerAction("@", KeyboardLayouts.KEY_Q, setOf(KeyboardLayouts.MOD_RALT))))
+        f.down(0, 250f)
+        f.down(1, 350f)
+        f.down(2, 450f)
+        f.down(3, 50f)
+        f.move(3, 80f, 20f)
+        f.up(3)
+        assertEquals(listOf(KeyboardLayouts.MOD_LCTRL to true, KeyboardLayouts.MOD_LALT to true,
+            KeyboardLayouts.MOD_LWIN to true, KeyboardLayouts.MOD_RALT to true,
+            KeyboardLayouts.KEY_Q to true, KeyboardLayouts.KEY_Q to false, KeyboardLayouts.MOD_RALT to false), f.events)
+        assertEquals(setOf(KeyboardLayouts.MOD_LCTRL, KeyboardLayouts.MOD_LALT, KeyboardLayouts.MOD_LWIN), f.gesture.pressedKeyCodes)
+        f.up(0)
+        f.up(1)
+        f.up(2)
+        assertTrue(f.gesture.pressedKeyCodes.isEmpty())
+    }
+
+    @Test fun simultaneousCharacterSwipesCannotBorrowEachOthersTemporaryModifiers() {
+        listOf(false, true).forEach { releaseTogether ->
+            val held = mutableSetOf<Int>()
+            val characterChords = mutableListOf<Pair<Int, Set<Int>>>()
+            val gesture = CornerKeyGesture(listOf(
+                CornerGestureKey("one", KeyboardLayouts.KEY_1, 0f, 0f, 100f, 100f,
+                    mapOf(KeyCorner.TOP_RIGHT to CornerAction("!", KeyboardLayouts.KEY_1, setOf(KeyboardLayouts.MOD_LSHIFT)))),
+                CornerGestureKey("q", KeyboardLayouts.KEY_Q, 100f, 0f, 100f, 100f,
+                    mapOf(KeyCorner.BOTTOM_RIGHT to CornerAction("@", KeyboardLayouts.KEY_Q, setOf(KeyboardLayouts.MOD_RALT)))),
+            ), 10f) { code, pressed ->
+                if (pressed && code < 0xE0) characterChords += code to held.toSet()
+                if (pressed) held += code else held -= code
+            }
+            gesture.process(listOf(KeyContact(0, 50f, 50f, true), KeyContact(1, 150f, 50f, true)))
+            gesture.process(listOf(KeyContact(0, 80f, 20f, true), KeyContact(1, 180f, 80f, true)))
+            if (!releaseTogether) {
+                gesture.process(listOf(KeyContact(0, 80f, 20f, false), KeyContact(1, 180f, 80f, true)))
+                assertTrue(held.isEmpty())
+            }
+            gesture.process(emptyList())
+            assertEquals(listOf(KeyboardLayouts.KEY_1 to setOf(KeyboardLayouts.MOD_LSHIFT),
+                KeyboardLayouts.KEY_Q to setOf(KeyboardLayouts.MOD_RALT)), characterChords)
+            assertTrue(held.isEmpty())
+        }
+    }
 }

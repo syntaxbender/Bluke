@@ -218,4 +218,39 @@ class TouchKeyboardSessionTest {
         session.reset()
         assertTrue(session.latchedModifiers.isEmpty())
     }
+
+    @Test fun characterCornersTemporarilySelectTheirLevelAndRestoreEveryLatchedModifier() = runTest {
+        listOf(
+            CornerAction("!", KeyboardLayouts.KEY_1, setOf(KeyboardLayouts.MOD_LSHIFT)),
+            CornerAction("@", KeyboardLayouts.KEY_Q, setOf(KeyboardLayouts.MOD_RALT)),
+            CornerAction("Æ", KeyboardLayouts.KEY_A, setOf(KeyboardLayouts.MOD_LSHIFT, KeyboardLayouts.MOD_RALT)),
+        ).forEach { action ->
+            val held = mutableSetOf<Int>()
+            val characterChords = mutableListOf<Set<Int>>()
+            val session = TouchKeyboardSession(10f, this) { code, pressed ->
+                if (pressed && code == action.keyCode) characterChords += held.toSet()
+                if (pressed) held += code else held -= code
+            }
+            val owner = Any()
+            session.attach(owner, listOf(control,
+                CornerGestureKey("shift", KeyboardLayouts.MOD_RSHIFT, 100f, 0f, 100f, 100f),
+                CornerGestureKey("altgr", KeyboardLayouts.MOD_RALT, 200f, 0f, 100f, 100f),
+                CornerGestureKey("character", action.keyCode, 300f, 0f, 100f, 100f,
+                    mapOf(KeyCorner.TOP_RIGHT to action))))
+            listOf(50f, 150f, 250f).forEach { x ->
+                session.update(owner, listOf(KeyContact(0, x, 50f, true)), 0)
+                session.update(owner, listOf(KeyContact(0, x, 50f, false)), 1)
+            }
+            val original = setOf(KeyboardLayouts.MOD_LCTRL, KeyboardLayouts.MOD_RSHIFT, KeyboardLayouts.MOD_RALT)
+            assertEquals(original, session.latchedModifiers)
+            session.update(owner, listOf(KeyContact(0, 350f, 50f, true)), 2)
+            session.update(owner, listOf(KeyContact(0, 380f, 20f, true)), 3)
+            session.update(owner, listOf(KeyContact(0, 380f, 20f, false)), 4)
+            assertEquals(listOf(setOf(KeyboardLayouts.MOD_LCTRL) + action.characterModifiers!!), characterChords)
+            assertEquals(original, held)
+            assertEquals(original, session.latchedModifiers)
+            session.reset()
+            assertTrue(held.isEmpty())
+        }
+    }
 }

@@ -4,6 +4,25 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class TouchKeyboardLayoutTest {
+    @Test fun characterCornersUseTheHostUsageAndTheDisplayedModifierLevel() {
+        val turkish = touchKeyboardLayout(KeyboardGeometry.COMPACT_75, KeyboardCharacterLayout.TURKISH_Q)
+        fun corner(code: Int, corner: KeyCorner) = turkish.single { it.layout.physicalKeyCode == code }.corners.getValue(corner)
+        assertEquals(CornerAction(":", KeyboardLayouts.KEY_SLASH, setOf(KeyboardLayouts.MOD_LSHIFT)),
+            corner(KeyboardLayouts.KEY_SLASH, KeyCorner.TOP_RIGHT))
+        assertEquals(CornerAction("@", KeyboardLayouts.KEY_Q, setOf(KeyboardLayouts.MOD_RALT)),
+            corner(KeyboardLayouts.KEY_Q, KeyCorner.BOTTOM_RIGHT))
+        assertEquals(CornerAction("Æ", KeyboardLayouts.KEY_A, setOf(KeyboardLayouts.MOD_LSHIFT, KeyboardLayouts.MOD_RALT)),
+            corner(KeyboardLayouts.KEY_A, KeyCorner.BOTTOM_LEFT))
+        assertNull(corner(KeyboardLayouts.KEY_CAPSLOCK, KeyCorner.TOP_RIGHT).characterModifiers)
+        assertEquals(CornerAction(">", KeyboardLayouts.KEY_NONUS_BACKSLASH, setOf(KeyboardLayouts.MOD_LSHIFT)),
+            corner(KeyboardLayouts.KEY_CAPSLOCK, KeyCorner.BOTTOM_RIGHT))
+        val french = touchKeyboardLayout(KeyboardGeometry.COMPACT_75, KeyboardCharacterLayout.FRENCH_AZERTY)
+            .single { it.layout.physicalKeyCode == KeyboardLayouts.KEY_M }
+        assertEquals(CornerAction("<", KeyboardLayouts.KEY_COMMA, setOf(KeyboardLayouts.MOD_LSHIFT)),
+            french.corners.getValue(KeyCorner.TOP_RIGHT))
+        assertTrue("A centre hold must still support host key repeat", french.holdPrimaryAfterDelay)
+    }
+
     @Test fun everyGeometryAndCharacterLayoutHasLargeAlignedArrowsAndCornerNavigation() {
         KeyboardGeometry.entries.forEach { geometry ->
             KeyboardCharacterLayout.entries.forEach { characters ->

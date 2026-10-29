@@ -668,4 +668,33 @@ class KeyboardTouchpadViewTest {
         compose.onNodeWithTag("key_press_preview_label").assertTextEquals("@")
         tapModifier("AltGr")
     }
+
+    @Test fun turkishCharacterCornersTypeShiftAndAltGrSymbolsWithOneFinger() {
+        show(typingLayout = KeyboardCharacterLayout.TURKISH_Q)
+        listOf(
+            Triple(".", Offset(24f, -24f), ":" to (0x02 to KeyboardLayouts.KEY_SLASH)),
+            Triple("q", Offset(24f, 24f), "@" to (0x40 to KeyboardLayouts.KEY_Q)),
+            Triple("7", Offset(24f, 24f), "{" to (0x40 to KeyboardLayouts.KEY_7)),
+            Triple("a", Offset(-24f, 24f), "Æ" to (0x42 to KeyboardLayouts.KEY_A)),
+            Triple("Caps Lock", Offset(24f, 24f), ">" to (0x02 to KeyboardLayouts.KEY_NONUS_BACKSLASH)),
+        ).forEach { (legend, direction, expected) ->
+            HidShadow.reports.clear()
+            val key = compose.onNodeWithTag("key_$legend", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
+            compose.onRoot().performTouchInput {
+                down(0, key)
+                moveTo(0, key + direction)
+            }
+            compose.onNodeWithTag("key_press_preview_label").assertTextEquals(expected.first)
+            if (legend == "a") compose.onRoot().captureRoboImage(filePath = "build/outputs/screenshots/key-preview-character-corner.png")
+            compose.onRoot().performTouchInput { up(0) }
+            awaitReports()
+            val (modifiers, code) = expected.second
+            val presses = HidShadow.reports.filter { (id, bytes) -> id == 1 && code.toByte() in bytes.drop(2) }
+            assertTrue("$legend should emit its selected corner character", presses.isNotEmpty())
+            assertTrue("The primary character must not leak before the corner", presses.all { it.second[0] == modifiers.toByte() })
+            assertTrue(HidShadow.reports.last { it.first == 1 }.second.all { it == 0.toByte() })
+            compose.onAllNodesWithTag("key_Shift", useUnmergedTree = true).onFirst().assertIsNotSelected()
+            compose.onNodeWithTag("key_AltGr", useUnmergedTree = true).assertIsNotSelected()
+        }
+    }
 }

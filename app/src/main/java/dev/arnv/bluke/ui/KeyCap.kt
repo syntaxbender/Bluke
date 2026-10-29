@@ -114,7 +114,14 @@ fun KeyCap(
                 modifier = Modifier.padding(horizontal = 3.dp),
             )
             val displayedCorners = if (arrow != null) cornerActions.entries.distinctBy { it.value.keyCode } else cornerActions.entries.toList()
-            displayedCorners.forEach { (corner, action) ->
+            displayedCorners.filter { (corner, action) ->
+                action.characterModifiers == null || action.legend != when (corner) {
+                    KeyCorner.TOP_RIGHT -> shiftedLegend
+                    KeyCorner.BOTTOM_RIGHT -> altGrLegend
+                    KeyCorner.BOTTOM_LEFT -> shiftedAltGrLegend
+                    KeyCorner.TOP_LEFT -> ""
+                }
+            }.forEach { (corner, action) ->
                 val alignment = when (corner) {
                     KeyCorner.TOP_LEFT -> Alignment.TopStart
                     KeyCorner.TOP_RIGHT -> Alignment.TopEnd
@@ -124,24 +131,23 @@ fun KeyCap(
                 val cornerFont = (minOf(width.value, height.value) * 0.17f).coerceIn(7f, 9f)
                 Text(
                     text = action.legend,
-                    color = legendColor.copy(alpha = if (cornerActions[selectedCorner]?.keyCode == action.keyCode) 1f else 0.65f),
+                    color = legendColor.copy(alpha = if (cornerActions[selectedCorner] == action) 1f else 0.65f),
                     style = textStyle.copy(fontSize = cornerFont.sp, lineHeight = cornerFont.sp),
-                    fontWeight = if (cornerActions[selectedCorner]?.keyCode == action.keyCode) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = if (cornerActions[selectedCorner] == action) FontWeight.Bold else FontWeight.Normal,
                     maxLines = 1,
                     modifier = Modifier.align(alignment).padding(horizontal = 4.dp, vertical = 3.dp)
                         .testTag("corner_${legend}_${corner.name}"),
                 )
             }
-            if (cornerActions.isEmpty()) {
-                AlternateKeyLegends(
-                    legend = legend,
-                    shiftedLegend = shiftedLegend,
-                    altGrLegend = altGrLegend,
-                    shiftedAltGrLegend = shiftedAltGrLegend,
-                    color = legendColor,
-                    fontSize = (fontSize * 0.65f).coerceIn(8f, 11f).sp,
-                )
-            }
+            AlternateKeyLegends(
+                legend = legend,
+                shiftedLegend = shiftedLegend,
+                altGrLegend = altGrLegend,
+                shiftedAltGrLegend = shiftedAltGrLegend,
+                color = legendColor,
+                fontSize = (fontSize * 0.65f).coerceIn(8f, 11f).sp,
+                selectedCorner = selectedCorner,
+            )
             if (isLatched) {
                 Icon(
                     imageVector = Icons.Default.Lock,
@@ -303,7 +309,7 @@ fun KeyCap(
     }
 }
 
-/** Symbol hints are visual labels, independent of the swipe actions and HID modifier handling. */
+/** Symbol hints share the same corners as the touch keyboard's character gestures. */
 @Composable
 private fun BoxScope.AlternateKeyLegends(
     legend: String,
@@ -312,19 +318,25 @@ private fun BoxScope.AlternateKeyLegends(
     shiftedAltGrLegend: String,
     color: Color,
     fontSize: TextUnit,
+    selectedCorner: KeyCorner? = null,
 ) {
     listOf(
         Triple("shift", shiftedLegend, Alignment.TopEnd),
         Triple("altgr", altGrLegend, Alignment.BottomEnd),
         Triple("shift_altgr", shiftedAltGrLegend, Alignment.BottomStart),
     ).filter { it.second.isNotEmpty() }.forEach { (level, symbol, alignment) ->
+        val highlighted = selectedCorner == when (level) {
+            "shift" -> KeyCorner.TOP_RIGHT
+            "altgr" -> KeyCorner.BOTTOM_RIGHT
+            else -> KeyCorner.BOTTOM_LEFT
+        }
         Text(
             text = symbol,
-            color = color.copy(alpha = 0.75f),
+            color = color.copy(alpha = if (highlighted) 1f else 0.75f),
             fontSize = fontSize,
             lineHeight = fontSize * 1.25f,
             letterSpacing = 0.sp,
-            fontWeight = FontWeight.Normal,
+            fontWeight = if (highlighted) FontWeight.Bold else FontWeight.Normal,
             style = androidx.compose.ui.text.TextStyle(
                 platformStyle = androidx.compose.ui.text.PlatformTextStyle(includeFontPadding = false),
             ),
