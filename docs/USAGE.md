@@ -41,13 +41,29 @@ The toolbar also displays your connection status (green for active, red/gray for
 ### Mechanical Keyboard
 An authentic mechanical typing surface featuring tactile haptics, realistic acoustics, and customizable layouts.
 
-- **Typing Layouts:** Choose between **QWERTY**, **AZERTY**, **QWERTZ**, **Dvorak**, **Colemak**, and **Russian (ЙЦУКЕН)**.
+- **Typing Layouts:** Choose between **QWERTY**, **Turkish Q**, **AZERTY**, **QWERTZ**, **Dvorak**, **Colemak**, and **Russian (ЙЦУКЕН)**.
 - **On-Screen Shortcut:** Hold on-screen **Shift** and tap **Space** to switch typing layouts on the fly without leaving the keyboard.
   > [!TIP]
   > Keyboards send physical key positions rather than typed letters. To type in Russian (ЙЦУКЕН) or French (AZERTY), make sure your computer is also set to that language. See [Troubleshooting: Host Keyboard Languages](#russian-or-accented-characters-do-not-type-correctly).
 - **Physical Layouts (Geometries):** Choose your preferred keyboard form factor: **Classic 75%**, **Compact 75%**, **Inline 75%**, **Standard 65%**, **Balanced 65%**, **Extended 65%**, or **HHKB 60%**.
 - **In-Place Fn Shortcuts:** Holding the **Fn** key transforms F1–F12 keys into media and presentation controls right on the keycaps.
 - **Switch Acoustics:** Turn typing sounds on/off or cycle between 12 mechanical switch profiles directly from the toolbar.
+
+---
+
+### Keyboard + Touchpad (optional)
+
+Open **Keyboard**, hold the toolbar's mode button to open **Input mode cycle**, and enable **Keyboard + Touchpad**. Cycle to it and launch it. The four default modes and the original Mechanical Keyboard remain available with their existing settings.
+
+This landscape screen places a touch keyboard on the left and a touchpad on the right. Letter keys use equal widths, with similar digit widths. Four arrow keys sit below the touchpad and align with the keyboard's bottom edge.
+
+- **Resize:** The narrow arrows between the panels adjust their widths in up to two steps per direction, normally five percentage points per step. Small screens apply tighter limits. The selection is remembered.
+- **Shortcuts:** Tap Ctrl, Shift, Alt, AltGr or Win once to keep it pressed, then tap the other keys. Tap the same modifier again to release it. Active modifiers use the theme accent and a lock icon. Leaving the screen, changing its layout or size, changing the Bluetooth connection, or backgrounding the app releases them.
+- **Corner gestures:** Touch anywhere on a key and slide diagonally before lifting. Arrow corners provide Home, End, Page Up and Page Down. Win's upper-left corner holds Fn while sliding/holding; Caps provides Insert and Scroll Lock. Delete stays a direct key on the top row. Modifier combinations also apply to corner actions.
+- **Repeated navigation:** Hold the middle of an arrow for 350 ms to keep it pressed. The host supplies normal key repeat.
+- **Turkish Q:** Select Turkish Q on both the phone and host. Shift symbols appear at the top right, AltGr symbols at the bottom right, and Shift+AltGr symbols at the bottom left. Right Alt is labelled AltGr. Caps' upper-left corner supplies the ISO `<` key, or `>` with Shift.
+- **Touchpad:** Tap to click, use two fingers to scroll or right-click, or use the separate left/right button areas. After scrolling, lift every finger before starting a new pointer movement.
+- **Feedback:** Regular keys keep their visual feedback for 160 ms after release; their Bluetooth key-up is immediate. Keyboard audio uses the media volume stream.
 
 ---
 

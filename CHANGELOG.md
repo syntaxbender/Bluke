@@ -3,6 +3,16 @@
 All notable user-facing changes and improvements to Bluke are documented in this file.
 For detailed usage instructions, see the [Usage Guide](docs/USAGE.md).
 
+## [Unreleased]
+
+### Added
+- Optional landscape Keyboard + Touchpad mode with adjustable panel widths, evenly sized typing keys, corner-swipe navigation and latching modifiers.
+- Turkish Q typing layout with locale-aware casing and visible Shift/AltGr symbol hints.
+
+### Fixed
+- Keep the pointer stationary after two-finger scrolling until all fingers are lifted, and avoid a false click on scroll release.
+- Play keyboard sounds through the media volume stream when the phone ringer is silent.
+
 ## [1.1.0] - 2026-10-09
 
 > [!IMPORTANT]

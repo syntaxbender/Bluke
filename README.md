@@ -18,9 +18,9 @@ Bluke turns your Android phone into a Bluetooth keyboard, touchpad, gamepad, and
 ## Features
 
 - Direct Bluetooth HID connection with no companion apps or server software running on the host
-- Four input modes: Keyboard, Touchpad, Gamepad, and Multimedia remote
+- Four default input modes: Keyboard, Touchpad, Gamepad, and Multimedia remote, plus an optional landscape Keyboard + Touchpad mode
 - 12 mechanical switch sound profiles, plus support for importing custom Mechvibes sound packs
-- Multiple typing layouts (QWERTY, AZERTY, QWERTZ, Dvorak, Colemak, Russian ЙЦУКЕН) with `Shift + Space` cycling
+- Multiple typing layouts (QWERTY, Turkish Q, AZERTY, QWERTZ, Dvorak, Colemak, Russian ЙЦУКЕН) with `Shift + Space` cycling
 - Multiple keyboard geometries (60%, 65%, 75%) and custom themes with case, plate, and keycap styling
 - Gamepad controller with live switching between Native, Android, and Web mappings
 - Multimedia remote with presentation controls, touchpad, and phone volume button forwarding
