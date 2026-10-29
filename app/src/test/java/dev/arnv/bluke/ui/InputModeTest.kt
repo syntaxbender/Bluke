@@ -7,6 +7,23 @@ import org.junit.Test
 
 class InputModeTest {
     @Test
+    fun splitKeyboardIsAvailableWithoutChangingDefaultModes() {
+        assertEquals(InputMode.KEYBOARD, InputMode.fromId(0))
+        assertEquals("Keyboard", InputMode.KEYBOARD.displayName)
+        assertEquals(InputMode.SPLIT_KEYBOARD, InputMode.fromId(5))
+        assertFalse(normalizeInputModeKeys(null).contains(InputMode.SPLIT_KEYBOARD.preferenceKey))
+        assertEquals(setOf("keyboard", "touchpad", "gamepad", "media_presentation"), defaultInputModeKeys)
+    }
+
+    @Test
+    fun splitKeyboardCanBeExplicitlyEnabledWithoutRevivingTheRemovedMode() {
+        val enabled = setOf("keyboard", InputMode.SPLIT_KEYBOARD.preferenceKey)
+        assertEquals(enabled, normalizeInputModeKeys(enabled))
+        assertEquals(setOf(InputMode.SPLIT_KEYBOARD.preferenceKey),
+            normalizeInputModeKeys(setOf("keyboard_touchpad", InputMode.SPLIT_KEYBOARD.preferenceKey)))
+    }
+
+    @Test
     fun oldThreeModeDefaultGainsNewModes() {
         val normalized = normalizeInputModeKeys(setOf("keyboard", "touchpad", "gamepad"))
 

@@ -19,6 +19,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
@@ -428,12 +430,13 @@ fun HomeScreen(
     }
 
     // Toggle orientation and full-screen layout helper automatically
-    LaunchedEffect(isKeyboardActive) {
+    LaunchedEffect(isKeyboardActive, launchMode) {
         val activity = context as? Activity ?: return@LaunchedEffect
         val window = activity.window ?: return@LaunchedEffect
         if (isKeyboardActive) {
             try {
-                activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                activity.requestedOrientation = if (launchMode == InputMode.SPLIT_KEYBOARD.id)
+                    ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
             } catch (e: Exception) {
                 Log.e("HomeScreen", "Error setting orientation to landscape: ${e.message}")
             }
@@ -678,6 +681,7 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(caseBrush)
+                            .windowInsetsPadding(WindowInsets.displayCutout)
                             .padding(bottom = 6.dp),
                         verticalArrangement = Arrangement.SpaceBetween,
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -688,8 +692,9 @@ fun HomeScreen(
                                 .fillMaxWidth()
                                 .height(38.dp)
                                 .background(Color.Black.copy(alpha = 0.45f))
+                                .horizontalScroll(rememberScrollState())
                                 .padding(horizontal = 8.dp, vertical = 2.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             // Left Section: Exit, Connection status and Reconnect Button
@@ -758,7 +763,7 @@ fun HomeScreen(
                                         modifier = Modifier.size(11.dp)
                                     )
                                     Text(
-                                        text = "Keyboard Mode",
+                                        text = if (launchMode == InputMode.SPLIT_KEYBOARD.id) "Keyboard + Touchpad" else "Keyboard Mode",
                                         color = Color.White,
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold
@@ -783,7 +788,10 @@ fun HomeScreen(
                                     color = Color.White,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    fontFamily = FontFamily.SansSerif
+                                    fontFamily = FontFamily.SansSerif,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.widthIn(max = 100.dp),
                                 )
                                 
                                 // Reconnect Button
@@ -1090,15 +1098,15 @@ fun HomeScreen(
                             }
                         }
 
-                        // 2. Main Mechanical Keyboard Chassis (centered with custom margins)
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
-                                .padding(horizontal = 6.dp, vertical = 2.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            KeyboardView(
+                        if (launchMode == InputMode.SPLIT_KEYBOARD.id) {
+                            // Keyboard and touchpad share the full landscape input window.
+                            KeyboardTouchpadView(
+                                btManager = btManager,
+                                sharedPrefs = sharedPrefs,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 6.dp, vertical = 2.dp),
                                 geometry = selectedGeometry,
                                 theme = selectedKeyboardTheme,
                                 characterLayout = characterLayout,
@@ -1109,13 +1117,44 @@ fun HomeScreen(
                                 isScrollLockActive = isScrollLockActive,
                                 isFnActive = isFnActive,
                                 keySensitivity = keySensitivity,
-                                onKeyPressChange = { code, press -> handleLocalKeyPress(code, press) }
+                                keyboardOverlay = {
+                                    KeyboardLayoutSwitcherOverlay(
+                                        visible = showLayoutSwitcher,
+                                        selectedLayout = pendingCharacterLayout ?: characterLayout,
+                                        modifier = Modifier.align(Alignment.Center),
+                                    )
+                                },
+                                onKeyPressChange = { code, press -> handleLocalKeyPress(code, press) },
                             )
-                            KeyboardLayoutSwitcherOverlay(
-                                visible = showLayoutSwitcher,
-                                selectedLayout = pendingCharacterLayout ?: characterLayout,
-                                modifier = Modifier.align(Alignment.Center),
-                            )
+                        } else {
+                            // 2. Main Mechanical Keyboard Chassis (centered with custom margins)
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        .testTag("mechanical_keyboard_view"),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                KeyboardView(
+                                    geometry = selectedGeometry,
+                                    theme = selectedKeyboardTheme,
+                                    characterLayout = characterLayout,
+                                    activePressedKeys = activePressedKeys,
+                                    isConnected = isConnected,
+                                    isCapsLockActive = isCapsLockActive,
+                                    isNumLockActive = isNumLockActive,
+                                    isScrollLockActive = isScrollLockActive,
+                                    isFnActive = isFnActive,
+                                    keySensitivity = keySensitivity,
+                                    onKeyPressChange = { code, press -> handleLocalKeyPress(code, press) }
+                                )
+                                KeyboardLayoutSwitcherOverlay(
+                                    visible = showLayoutSwitcher,
+                                    selectedLayout = pendingCharacterLayout ?: characterLayout,
+                                    modifier = Modifier.align(Alignment.Center),
+                                )
+                            }
                         }
                     }
                 }
@@ -1310,6 +1349,7 @@ fun HomeScreen(
                                     1 -> "Launch Touchpad"
                                     2 -> "Launch Gamepad"
                                     4 -> "Launch Multimedia"
+                                    InputMode.SPLIT_KEYBOARD.id -> "Launch Keyboard + Touchpad"
                                     else -> "Launch Keyboard"
                                 }
                                 Icon(

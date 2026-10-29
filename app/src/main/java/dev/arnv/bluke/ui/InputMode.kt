@@ -9,11 +9,13 @@ enum class InputMode(
     val id: Int,
     val preferenceKey: String,
     val displayName: String,
+    val enabledByDefault: Boolean = true,
 ) {
     KEYBOARD(0, "keyboard", "Keyboard"),
     TOUCHPAD(1, "touchpad", "Touchpad"),
     GAMEPAD(2, "gamepad", "Gamepad"),
     MEDIA_PRESENTATION(4, "media_presentation", "Multimedia"),
+    SPLIT_KEYBOARD(5, "split_keyboard_touchpad", "Keyboard + Touchpad", enabledByDefault = false),
     ;
 
     companion object {
@@ -24,7 +26,7 @@ enum class InputMode(
 private val legacyDefaultModeKeys = setOf("keyboard", "touchpad", "gamepad")
 private const val REMOVED_MOUSE_MODE_KEY = "mouse"
 private const val REMOVED_KEYBOARD_TOUCHPAD_MODE_KEY = "keyboard_touchpad"
-val defaultInputModeKeys: Set<String> = InputMode.entries.mapTo(linkedSetOf()) { it.preferenceKey }
+val defaultInputModeKeys: Set<String> = InputMode.entries.filter { it.enabledByDefault }.mapTo(linkedSetOf()) { it.preferenceKey }
 
 fun normalizeInputModeKeys(savedKeys: Set<String>?): Set<String> {
     val normalized = when {

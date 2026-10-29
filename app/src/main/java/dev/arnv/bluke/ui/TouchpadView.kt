@@ -744,6 +744,7 @@ fun TouchGestureLayer(
     buttonMode: TrackpadButtonMode,
     triggerVibration: (Long) -> Unit,
     showNumpadLed: Boolean,
+    onTouchStart: () -> Unit = {},
 ) {
     // Tracking points and states for reliable swipe gesture translation
     var lastActivePointerId by remember { mutableStateOf<PointerId?>(null) }
@@ -762,6 +763,7 @@ fun TouchGestureLayer(
     var maxPointersInTap by remember { mutableIntStateOf(0) }
     val gestureScope = rememberCoroutineScope()
     val currentVibration by rememberUpdatedState(triggerVibration)
+    val currentTouchStart by rememberUpdatedState(onTouchStart)
     val tapDrag = remember(btManager, sensitivity, scrollSensitivity, buttonMode, showNumpadLed) {
         TouchpadTapDragGesture(gestureScope,
             sendButton = { btManager.sendMouseReport(it, 0, 0, 0) },
@@ -810,6 +812,7 @@ fun TouchGestureLayer(
                     while (true) {
                         val event = awaitPointerEvent()
                         val changes = event.changes
+                        if (changes.any { it.pressed && !it.previousPressed }) currentTouchStart()
 
                         if (showNumpadLed) {
                             isTouchActive = false

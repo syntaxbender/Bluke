@@ -5,15 +5,26 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.TextUnit
@@ -32,10 +43,116 @@ fun KeyCap(
     baseUnitWidth: androidx.compose.ui.unit.Dp,
     modifier: Modifier = Modifier,
     glowColor: Color? = null,
+    touchOptimized: Boolean = false,
+    cornerActions: Map<KeyCorner, CornerAction> = emptyMap(),
+    selectedCorner: KeyCorner? = null,
     altGrLegend: String = "",
     shiftedAltGrLegend: String = "",
+    isLatched: Boolean = false,
 ) {
     val keyBorderColor = keyBgColor.darker()
+
+    if (touchOptimized) {
+        val label = cornerActions[selectedCorner]?.legend ?: when (legend) {
+            "Backspace" -> "⌫"
+            "Delete" -> "Del"
+            "Caps Lock" -> "⇪"
+            "Shift" -> "⇧"
+            "Tab" -> "⇥"
+            "PgUp" -> "Pg↑"
+            "PgDn" -> "Pg↓"
+            "" -> "Space"
+            else -> legend
+        }
+        val symbol = label in setOf("⇪", "⇧", "⇥")
+        val requestedFontSize = (minOf(width.value, height.value) * if (symbol) 0.55f else 0.4f)
+            .coerceIn(if (symbol) 16f else 9f, if (symbol) 24f else 18f) * legendScale
+        val textStyle = LocalTextStyle.current.copy(
+            fontSize = requestedFontSize.sp,
+            fontWeight = FontWeight.Medium,
+            letterSpacing = 0.sp,
+        )
+        val measuredWidth = rememberTextMeasurer().measure(
+            text = label,
+            style = textStyle,
+            maxLines = 1,
+            softWrap = false,
+        ).size.width.coerceAtLeast(1)
+        val availableWidth = with(LocalDensity.current) { (width - 9.dp).toPx() }.coerceAtLeast(1f)
+        val fontSize = requestedFontSize * minOf(1f, availableWidth / measuredWidth)
+        val shape = RoundedCornerShape(5.dp)
+        Box(
+            modifier = modifier.width(width).height(height).testTag("key_$legend")
+                .semantics { selected = isLatched }
+                .padding(1.dp)
+                .background(if (isPressed && !isLatched) keyBorderColor else keyBgColor, shape)
+                .border(1.dp, if (selectedCorner != null) legendColor else glowColor ?: Color.Black.copy(alpha = 0.16f), shape),
+            contentAlignment = Alignment.Center,
+        ) {
+            val arrow = when (legend) {
+                "←" -> Icons.AutoMirrored.Filled.ArrowBack
+                "→" -> Icons.AutoMirrored.Filled.ArrowForward
+                "↑" -> Icons.Default.ArrowUpward
+                "↓" -> Icons.Default.ArrowDownward
+                else -> null
+            }
+            if (arrow != null) {
+                Icon(
+                    imageVector = arrow,
+                    contentDescription = legend,
+                    tint = legendColor,
+                    modifier = Modifier.size(minOf(width, height) * 0.6f),
+                )
+            } else Text(
+                text = label,
+                color = legendColor,
+                style = textStyle.copy(fontSize = fontSize.sp),
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 3.dp),
+            )
+            val displayedCorners = if (arrow != null) cornerActions.entries.distinctBy { it.value.keyCode } else cornerActions.entries.toList()
+            displayedCorners.forEach { (corner, action) ->
+                val alignment = when (corner) {
+                    KeyCorner.TOP_LEFT -> Alignment.TopStart
+                    KeyCorner.TOP_RIGHT -> Alignment.TopEnd
+                    KeyCorner.BOTTOM_LEFT -> Alignment.BottomStart
+                    KeyCorner.BOTTOM_RIGHT -> Alignment.BottomEnd
+                }
+                val cornerFont = (minOf(width.value, height.value) * 0.17f).coerceIn(7f, 9f)
+                Text(
+                    text = action.legend,
+                    color = legendColor.copy(alpha = if (cornerActions[selectedCorner]?.keyCode == action.keyCode) 1f else 0.65f),
+                    style = textStyle.copy(fontSize = cornerFont.sp, lineHeight = cornerFont.sp),
+                    fontWeight = if (cornerActions[selectedCorner]?.keyCode == action.keyCode) FontWeight.Bold else FontWeight.Normal,
+                    maxLines = 1,
+                    modifier = Modifier.align(alignment).padding(horizontal = 4.dp, vertical = 3.dp)
+                        .testTag("corner_${legend}_${corner.name}"),
+                )
+            }
+            if (cornerActions.isEmpty()) {
+                AlternateKeyLegends(
+                    legend = legend,
+                    shiftedLegend = shiftedLegend,
+                    altGrLegend = altGrLegend,
+                    shiftedAltGrLegend = shiftedAltGrLegend,
+                    color = legendColor,
+                    fontSize = (fontSize * 0.65f).coerceIn(8f, 11f).sp,
+                )
+            }
+            if (isLatched) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = legendColor.copy(alpha = 0.8f),
+                    modifier = Modifier.align(Alignment.TopEnd).padding(4.dp).size(9.dp),
+                )
+            }
+        }
+        return
+    }
     
     // Proportional radii mapped directly from KBSim's 5px/3px on a 54px keysize
     val outerRadius = baseUnitWidth * 0.092f
