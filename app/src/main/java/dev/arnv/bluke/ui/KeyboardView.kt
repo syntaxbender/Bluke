@@ -7,9 +7,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
@@ -43,6 +47,7 @@ fun KeyboardView(
     }
     val inputSession = sharedInput ?: localInput
     val inputOwner = remember { Any() }
+    var previewOrigin by remember { mutableStateOf<Offset?>(null) }
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize(),
@@ -77,6 +82,32 @@ fun KeyboardView(
 
         val context = androidx.compose.ui.platform.LocalContext.current
         val sharedPrefs = remember { context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE) }
+        val density = LocalDensity.current
+        if (fillAvailableSpace && onKeySelected == null) {
+            previewOrigin?.let { origin ->
+                val unitX = with(density) { horizontalUnit.toPx() }
+                val unitY = with(density) { verticalUnit.toPx() }
+                val previews = touchKeys.map { touchKey ->
+                    val key = touchKey.layout
+                    val left = origin.x + unitX * key.x
+                    val top = origin.y + unitY * key.y
+                    KeyPreviewInfo(
+                        id = key.styleId,
+                        bounds = Rect(left, top, left + unitX * key.widthRatio, top + unitY * key.heightRatio),
+                        label = keyPreviewLabel(key, characterLayout, emptySet(), isCapsLockActive),
+                        corners = touchKey.corners,
+                        background = Color(theme.accentStyle.backgroundArgb),
+                        foreground = Color(theme.accentStyle.legendArgb),
+                        shiftedLabel = keyPreviewLabel(key, characterLayout, setOf(KeyboardLayouts.MOD_LSHIFT), isCapsLockActive),
+                        altGrLabel = keyPreviewLabel(key, characterLayout, setOf(KeyboardLayouts.MOD_RALT), isCapsLockActive),
+                        shiftedAltGrLabel = keyPreviewLabel(key, characterLayout,
+                            setOf(KeyboardLayouts.MOD_LSHIFT, KeyboardLayouts.MOD_RALT), isCapsLockActive),
+                        fnLabel = fnLegendForKey(key.keyCode),
+                    )
+                }
+                SideEffect { inputSession.updatePreviewKeys(inputOwner, previews) }
+            }
+        }
 
         // Keyboard Case plate well holding absolutely-positioned keycaps (guarantees perfect grid alignments)
         Box(
@@ -92,6 +123,7 @@ fun KeyboardView(
                 .background(Color(theme.plateArgb), RoundedCornerShape(10.dp))
                 .border(1.5.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
                 .padding(platePadding)
+                .onGloballyPositioned { if (fillAvailableSpace) previewOrigin = it.positionInRoot() }
                 .pointerInput(horizontalUnit, verticalUnit, touchKeys, onKeySelected, keySensitivity, fillAvailableSpace, inputSession) {
                     if (fillAvailableSpace && onKeySelected == null) {
                         inputSession.attach(inputOwner,
@@ -282,6 +314,9 @@ fun KeyboardView(
                         glowColor = finalGlowColor
                     )
                 }
+            }
+            if (fillAvailableSpace && sharedInput == null && onKeySelected == null) {
+                KeyPressPreviewOverlay(inputSession.keyPreview, Modifier.matchParentSize())
             }
         }
         }

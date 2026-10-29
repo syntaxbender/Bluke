@@ -9,6 +9,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 internal const val KEY_RELEASE_FEEDBACK_MILLIS = 160L
+internal const val KEY_PREVIEW_RELEASE_MILLIS = 180L
 
 /** Shares finger/modifier ownership between the keyboard and the separate navigation panel. */
 class TouchKeyboardSession internal constructor(
@@ -23,6 +24,13 @@ class TouchKeyboardSession internal constructor(
     private var holdJob: Job? = null
     private var scheduledDeadline: Long? = null
     private val feedbackJobs = mutableMapOf<String, Job>()
+    private val previewRegions = mutableMapOf<Any, Map<String, KeyPreviewInfo>>()
+    private var previewSelection: Pair<String, KeyCorner?>? = null
+    // Preserve the typed label during the release linger, even if Shift or Fn is released too.
+    private var previewModifiers = emptySet<Int>()
+    private var previewHideJob: Job? = null
+    internal var keyPreview by mutableStateOf<PressedKeyPreview?>(null)
+        private set
     var visualPressedKeys by mutableStateOf<Set<String>>(emptySet())
         private set
     var feedback by mutableStateOf<Map<String, KeyCorner?>>(emptyMap())
@@ -48,11 +56,17 @@ class TouchKeyboardSession internal constructor(
 
     internal fun detach(owner: Any) {
         if (regions.remove(owner) == null) return
+        previewRegions.remove(owner)
         gesture.replaceKeys(regions.values.flatMap { it.keys })
         reset()
     }
 
     internal fun reset() {
+        previewHideJob?.cancel()
+        previewHideJob = null
+        previewSelection = null
+        previewModifiers = emptySet()
+        keyPreview = null
         regions.values.forEach { it.contacts = emptyList() }
         gesture.cancel()
         refresh()
@@ -65,9 +79,58 @@ class TouchKeyboardSession internal constructor(
 
     private fun allContacts() = regions.values.flatMap { it.contacts }
 
+    internal fun updatePreviewKeys(owner: Any, keys: List<KeyPreviewInfo>) {
+        val updated = keys.associateBy { it.id }
+        if (previewRegions[owner] == updated) return
+        previewRegions[owner] = updated
+        updatePreview()
+    }
+
+    private fun updatePreview() {
+        val selection = previewSelection
+        val info = selection?.let { selected -> previewRegions.values.firstNotNullOfOrNull { it[selected.first] } }
+        val shift = previewModifiers.any { it == KeyboardLayouts.MOD_LSHIFT || it == KeyboardLayouts.MOD_RSHIFT }
+        val altGr = KeyboardLayouts.MOD_RALT in previewModifiers
+        keyPreview = if (selection != null && info != null) PressedKeyPreview(
+            info.id, info.bounds, info.corners[selection.second]?.legend ?: when {
+                KeyboardLayouts.KEY_FN in previewModifiers && info.fnLabel != null -> info.fnLabel
+                shift && altGr -> info.shiftedAltGrLabel
+                altGr -> info.altGrLabel
+                shift -> info.shiftedLabel
+                else -> info.label
+            }, info.background, info.foreground,
+        ) else null
+    }
+
+    private fun refreshPreview(live: Map<String, KeyCorner?>) {
+        val newest = (live.keys - feedback.keys).lastOrNull()
+        if (newest != null) {
+            previewHideJob?.cancel()
+            previewHideJob = null
+            previewSelection = newest to live[newest]
+            previewModifiers = gesture.pressedKeyCodes
+        } else {
+            val selected = previewSelection?.first
+            if (selected != null && selected in live) {
+                previewSelection = selected to live[selected]
+                previewModifiers = gesture.pressedKeyCodes
+            } else if (selected != null && selected in feedback && previewHideJob == null) {
+                previewHideJob = scope.launch {
+                    delay(KEY_PREVIEW_RELEASE_MILLIS)
+                    previewSelection = null
+                    previewModifiers = emptySet()
+                    previewHideJob = null
+                    updatePreview()
+                }
+            }
+        }
+        updatePreview()
+    }
+
     private fun refresh() {
         latchedModifiers = gesture.latchedModifiers
         val live = gesture.feedback
+        refreshPreview(live)
         live.keys.forEach { feedbackJobs.remove(it)?.cancel() }
         visualPressedKeys = visualPressedKeys + live.keys
         (feedback.keys - live.keys).forEach { id ->

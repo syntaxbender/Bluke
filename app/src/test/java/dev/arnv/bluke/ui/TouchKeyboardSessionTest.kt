@@ -1,5 +1,8 @@
 package dev.arnv.bluke.ui
 
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
+
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -13,6 +16,48 @@ class TouchKeyboardSessionTest {
     private val control = CornerGestureKey("ctrl", KeyboardLayouts.MOD_LCTRL, 0f, 0f, 100f, 100f)
     private val left = CornerGestureKey("left", KeyboardLayouts.KEY_LEFT, 0f, 0f, 100f, 100f,
         mapOf(KeyCorner.TOP_LEFT to CornerAction("Home", KeyboardLayouts.KEY_HOME)), holdPrimaryAfterDelay = true)
+
+    @Test fun cornerPreviewLingersWithoutDelayingTheBluetoothRelease() = runTest {
+        val events = mutableListOf<Pair<Int, Boolean>>()
+        val session = TouchKeyboardSession(10f, this) { code, pressed -> events += code to pressed }
+        val owner = Any()
+        session.attach(owner, listOf(left))
+        session.updatePreviewKeys(owner, listOf(KeyPreviewInfo("left", Rect(0f, 0f, 100f, 100f), "←",
+            left.corners, Color.Red, Color.Black)))
+        session.update(owner, listOf(KeyContact(0, 50f, 50f, true)), 0)
+        assertEquals("←", session.keyPreview?.label)
+        session.update(owner, listOf(KeyContact(0, 20f, 20f, true)), 10)
+        assertEquals("Home", session.keyPreview?.label)
+        session.update(owner, listOf(KeyContact(0, 20f, 20f, false)), 20)
+        assertEquals(listOf(KeyboardLayouts.KEY_HOME to true, KeyboardLayouts.KEY_HOME to false), events)
+        assertEquals("Home", session.keyPreview?.label)
+        advanceTimeBy(KEY_PREVIEW_RELEASE_MILLIS - 1)
+        runCurrent()
+        assertNotNull(session.keyPreview)
+        advanceTimeBy(1)
+        runCurrent()
+        assertNull(session.keyPreview)
+    }
+
+    @Test fun anOlderReleaseTimerCannotHideTheNextHeldKeyPreview() = runTest {
+        val session = TouchKeyboardSession(10f, this) { _, _ -> }
+        val owner = Any()
+        val a = CornerGestureKey("a", KeyboardLayouts.KEY_A, 100f, 0f, 100f, 100f)
+        session.attach(owner, listOf(control, a))
+        session.updatePreviewKeys(owner, listOf(
+            KeyPreviewInfo("ctrl", Rect(0f, 0f, 100f, 100f), "Ctrl", background = Color.Red, foreground = Color.Black),
+            KeyPreviewInfo("a", Rect(100f, 0f, 200f, 100f), "a", background = Color.Red, foreground = Color.Black),
+        ))
+        session.update(owner, listOf(KeyContact(0, 50f, 50f, true)), 0)
+        session.update(owner, listOf(KeyContact(0, 50f, 50f, false)), 1)
+        advanceTimeBy(100)
+        session.update(owner, listOf(KeyContact(0, 150f, 50f, true)), 101)
+        advanceTimeBy(KEY_PREVIEW_RELEASE_MILLIS + 1)
+        runCurrent()
+        assertEquals("a", session.keyPreview?.label)
+        session.reset()
+        assertNull(session.keyPreview)
+    }
 
     @Test fun regionsShareModifiersEvenWhenReleasedBeforeTheSwipeFinishes() = runTest {
         val events = mutableListOf<Pair<Int, Boolean>>()
@@ -156,13 +201,17 @@ class TouchKeyboardSessionTest {
             CornerGestureKey("win", KeyboardLayouts.MOD_LWIN, 100f, 0f, 100f, 100f,
                 mapOf(KeyCorner.TOP_LEFT to CornerAction("Fn", KeyboardLayouts.KEY_FN))),
             CornerGestureKey("f1", KeyboardLayouts.KEY_F1, 200f, 0f, 100f, 100f)))
+        session.updatePreviewKeys(owner, listOf(KeyPreviewInfo("f1", Rect(200f, 0f, 300f, 100f), "F1",
+            background = Color.Red, foreground = Color.Black, fnLabel = "Mute")))
         session.update(owner, listOf(KeyContact(0, 50f, 50f, true)), 0)
         session.update(owner, listOf(KeyContact(0, 50f, 50f, false)), 1)
         session.update(owner, listOf(KeyContact(0, 150f, 50f, true)), 2)
         session.update(owner, listOf(KeyContact(0, 120f, 20f, true)), 3)
         session.update(owner, listOf(KeyContact(0, 120f, 20f, true), KeyContact(1, 250f, 50f, true)), 4)
+        assertEquals("Mute", session.keyPreview?.label)
         session.update(owner, listOf(KeyContact(0, 120f, 20f, true), KeyContact(1, 250f, 50f, false)), 5)
         session.update(owner, listOf(KeyContact(0, 120f, 20f, false)), 6)
+        assertEquals("The released key must keep its Fn label after Fn is released", "Mute", session.keyPreview?.label)
         assertEquals(listOf(KeyboardLayouts.MOD_LCTRL to true, KeyboardLayouts.KEY_FN to true,
             KeyboardLayouts.KEY_F1 to true, KeyboardLayouts.KEY_F1 to false, KeyboardLayouts.KEY_FN to false), events)
         assertEquals(setOf(KeyboardLayouts.MOD_LCTRL), session.latchedModifiers)

@@ -486,6 +486,7 @@ class KeyboardTouchpadViewTest {
                 up(1)
                 up(0)
             }
+            compose.onNodeWithTag("key_press_preview_label").assertTextEquals("Mute")
             awaitReports()
             assertTrue(HidShadow.reports.any { (id, bytes) -> id == 4 && bytes[0] == 0xE2.toByte() })
             assertTrue(HidShadow.reports.last { it.first == 4 }.second.all { it == 0.toByte() })
@@ -604,5 +605,67 @@ class KeyboardTouchpadViewTest {
         compose.runOnIdle { connected.value = true }
         compose.waitForIdle()
         assertEquals(0, ReflectionHelpers.getField<Int>(manager, "activeModifiers"))
+    }
+
+    @Test fun keyPreviewStaysAboveTheFingerAndLingersAfterTheRealKeyIsReleased() {
+        show(theme = KeyboardThemeCatalog.builtIn(BuiltinKeyboardTheme.DRACULA.id)!!)
+        val key = compose.onNodeWithTag("key_q", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        compose.onRoot().performTouchInput { down(0, key.center) }
+        compose.onNodeWithTag("key_press_preview_label").assertTextEquals("q")
+        val preview = compose.onNodeWithTag("key_press_preview").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertTrue("The preview must appear above the pressed key", preview.bottom <= key.top)
+        compose.onRoot().captureRoboImage(filePath = "build/outputs/screenshots/key-preview-letter.png")
+        compose.onRoot().performTouchInput { up(0) }
+        awaitReports()
+        assertTrue("The preview must not delay Bluetooth key-up", HidShadow.reports.last { it.first == 1 }.second.all { it == 0.toByte() })
+        compose.onNodeWithTag("key_press_preview").assertIsDisplayed()
+        compose.mainClock.advanceTimeBy(KEY_PREVIEW_RELEASE_MILLIS + 32L)
+        compose.onNodeWithTag("key_press_preview").assertDoesNotExist()
+    }
+
+    @Test fun aPreviewOverAnotherKeyDoesNotInterceptThatKeysTouch() {
+        show()
+        val z = compose.onNodeWithTag("key_z", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
+        val a = compose.onNodeWithTag("key_a", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
+        compose.onRoot().performTouchInput { down(0, z) }
+        val preview = compose.onNodeWithTag("key_press_preview").fetchSemanticsNode().boundsInRoot
+        assertTrue("This test must actually touch underneath the visible preview", preview.contains(a))
+        compose.onRoot().performTouchInput { down(1, a); up(1) }
+        awaitReports()
+        assertTrue(HidShadow.reports.any { (id, bytes) -> id == 1 && KeyboardLayouts.KEY_A.toByte() in bytes.drop(2) })
+        compose.onNodeWithTag("key_press_preview_label").assertTextEquals("a")
+        compose.onRoot().performTouchInput { up(0) }
+    }
+
+    @Test fun topRowPreviewStaysOnScreenAndArrowPreviewTracksTheChosenCorner() {
+        show()
+        val escape = compose.onNodeWithTag("key_Esc", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
+        val window = compose.onRoot().fetchSemanticsNode().boundsInRoot
+        compose.onRoot().performTouchInput { down(0, escape) }
+        val preview = compose.onNodeWithTag("key_press_preview").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertTrue(preview.left >= window.left && preview.top >= window.top)
+        assertTrue(preview.right <= window.right && preview.bottom <= window.bottom)
+        assertFalse("The first-row preview must also stay outside the finger", preview.contains(escape))
+        compose.onRoot().captureRoboImage(filePath = "build/outputs/screenshots/key-preview-top-row.png")
+        compose.onRoot().performTouchInput { up(0) }
+        val right = compose.onNodeWithTag("key_→", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.center
+        compose.onRoot().performTouchInput { down(0, right); moveTo(0, right + Offset(24f, -24f)) }
+        compose.onNodeWithTag("key_press_preview_label").assertTextEquals("End")
+        compose.onRoot().captureRoboImage(filePath = "build/outputs/screenshots/key-preview-corner.png")
+        compose.onRoot().performTouchInput { up(0) }
+        awaitReports()
+        assertTrue(HidShadow.reports.any { (id, bytes) -> id == 1 && bytes[2] == KeyboardLayouts.KEY_END.toByte() })
+    }
+
+    @Test fun turkishPreviewShowsTheShiftAndAltGrCharacters() {
+        show(typingLayout = KeyboardCharacterLayout.TURKISH_Q)
+        tapModifier("Shift")
+        compose.onNodeWithTag("key_.", useUnmergedTree = true).performTouchInput { click() }
+        compose.onNodeWithTag("key_press_preview_label").assertTextEquals(":")
+        tapModifier("Shift")
+        tapModifier("AltGr")
+        compose.onNodeWithTag("key_q", useUnmergedTree = true).performTouchInput { click() }
+        compose.onNodeWithTag("key_press_preview_label").assertTextEquals("@")
+        tapModifier("AltGr")
     }
 }

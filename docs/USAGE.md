@@ -63,7 +63,7 @@ This landscape screen places a touch keyboard on the left and a touchpad on the 
 - **Repeated navigation:** Hold the middle of an arrow for 350 ms to keep it pressed. The host supplies normal key repeat.
 - **Turkish Q:** Select Turkish Q on both the phone and host. Shift symbols appear at the top right, AltGr symbols at the bottom right, and Shift+AltGr symbols at the bottom left. Right Alt is labelled AltGr. Caps' upper-left corner supplies the ISO `<` key, or `>` with Shift.
 - **Touchpad:** Tap to click, use two fingers to scroll or right-click, or use the separate left/right button areas. After scrolling, lift every finger before starting a new pointer movement.
-- **Feedback:** Regular keys keep their visual feedback for 160 ms after release; their Bluetooth key-up is immediate. Keyboard audio uses the media volume stream.
+- **Feedback:** A small preview above the most recently touched key shows its character or selected corner action, including Shift/AltGr/Fn labels. It moves to the side near the top edge and stays visible for 180 ms after release. The preview lets touches pass through. Regular keys also keep their highlight for 160 ms; Bluetooth key-up is immediate. Keyboard audio uses the media volume stream.
 
 ---
 

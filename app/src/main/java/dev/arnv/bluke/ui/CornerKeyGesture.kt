@@ -46,6 +46,8 @@ internal class CornerKeyGesture(
             .minOfOrNull { it.startedAt + HOLD_DELAY_MILLIS }
     val feedback: Map<String, KeyCorner?>
         get() = touches.values.associate { it.key.id to it.corner }
+    val pressedKeyCodes: Set<Int>
+        get() = sent
 
     fun process(contacts: List<KeyContact>, timeMillis: Long = lastTime) {
         lastTime = maxOf(lastTime, timeMillis)

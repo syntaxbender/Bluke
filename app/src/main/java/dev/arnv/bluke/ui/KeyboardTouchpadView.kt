@@ -215,6 +215,7 @@ fun KeyboardTouchpadView(
                     }
                 }
             }
+            KeyPressPreviewOverlay(inputSession.keyPreview, Modifier.matchParentSize())
         }
     }
 }
