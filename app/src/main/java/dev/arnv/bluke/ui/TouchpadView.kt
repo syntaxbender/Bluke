@@ -802,6 +802,9 @@ fun TouchGestureLayer(
             .fillMaxSize()
             .pointerInput(sensitivity, scrollSensitivity, buttonMode, showNumpadLed) {
                 val tapSlopPx = TouchpadGesturePolicy.TAP_SLOP_DP.dp.toPx()
+                var multiTouchGesture = false
+                var gestureHasScrolled = false
+                var multiTouchMoved = false
                 try {
                 awaitPointerEventScope {
                     while (true) {
@@ -837,7 +840,29 @@ fun TouchGestureLayer(
                             }
                         }
 
-                        if (downCount == 1) {
+                        if (downCount >= 2) {
+                            multiTouchGesture = true
+                            // Discard the single-finger baseline before scrolling. Never replay its
+                            // accumulated movement when the fingers are lifted in different orders.
+                            lastActivePointerId = null
+                            accumulatedX = 0f
+                            accumulatedY = 0f
+                            if (activeMouseButton != 0.toByte()) {
+                                activeMouseButton = 0
+                                btManager.sendMouseReport(0, 0, 0, 0)
+                            }
+                        }
+                        if (multiTouchGesture && changes.any { change ->
+                            pointerDownInfo[change.id]?.let { (_, start) ->
+                                val dx = change.position.x - start.x
+                                val dy = change.position.y - start.y
+                                dx * dx + dy * dy > tapSlopPx * tapSlopPx
+                            } == true
+                        }) multiTouchMoved = true
+
+                        // A scroll owns the contact sequence until every finger is up. The finger
+                        // left on the surface after a scroll must not become a cursor drag.
+                        if (downCount == 1 && !multiTouchGesture) {
                             isTwoFingerActive = false
                             accumulatedScrollY = 0f
                             val pointer = changes.first { it.pressed }
@@ -913,6 +938,7 @@ fun TouchGestureLayer(
                                     if (now - lastReportTime >= 10L) {
                                         val sendScroll = accumulatedScrollY.roundToInt().coerceIn(-127, 127)
                                         if (sendScroll != 0) {
+                                            gestureHasScrolled = true
                                             btManager.sendMouseReport(0, 0, 0, sendScroll.toByte())
                                             accumulatedScrollY -= sendScroll
                                             lastReportTime = now
@@ -936,6 +962,7 @@ fun TouchGestureLayer(
                             }
                             val sendScroll = accumulatedScrollY.roundToInt().coerceIn(-127, 127)
                             if (sendScroll != 0) {
+                                gestureHasScrolled = true
                                 btManager.sendMouseReport(0, 0, 0, sendScroll.toByte())
                             }
                             accumulatedX = 0f
@@ -957,7 +984,7 @@ fun TouchGestureLayer(
                                         activeMouseButton = 0
                                         btManager.sendMouseReport(0, 0, 0, 0)
                                         triggerVibration(15)
-                                    } else {
+                                    } else if (!gestureHasScrolled && !multiTouchMoved) {
                                         val duration = change.uptimeMillis - downInfo.first
                                         val dx = change.position.x - downInfo.second.x
                                         val dy = change.position.y - downInfo.second.y
@@ -991,6 +1018,10 @@ fun TouchGestureLayer(
 
                         if (downCount == 0) {
                             maxPointersInTap = 0
+                            multiTouchGesture = false
+                            gestureHasScrolled = false
+                            multiTouchMoved = false
+                            pointerDownInfo.clear()
                         }
                     }
                 }
