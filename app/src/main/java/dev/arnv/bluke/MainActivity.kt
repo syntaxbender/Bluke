@@ -42,6 +42,7 @@ class MainActivity : ComponentActivity(), RemoteVolumeKeyHost {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        volumeControlStream = android.media.AudioManager.STREAM_MUSIC
         
         val sharedPrefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
         migrateSoundPreferences(sharedPrefs)

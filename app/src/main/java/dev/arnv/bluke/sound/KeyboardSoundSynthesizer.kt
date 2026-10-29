@@ -95,7 +95,7 @@ class KeyboardSoundSynthesizer(private val context: Context) {
     private fun createSoundPool() {
         soundPool?.release()
         val attrs = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+            .setUsage(AudioAttributes.USAGE_MEDIA)
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
             .setFlags(AudioAttributes.FLAG_LOW_LATENCY)
             .build()
