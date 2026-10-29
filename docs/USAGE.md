@@ -63,7 +63,7 @@ This landscape screen places a touch keyboard on the left and a touchpad on the 
 - **Character corners:** Slide toward a visible symbol and release to type it without pressing another key: top right selects Shift, bottom right AltGr, and bottom left Shift+AltGr. For example, Turkish Q's Q bottom-right corner types `@`, and the dot's top-right corner types `:`. The selected level temporarily replaces Shift/AltGr while preserving Ctrl, Alt and Win; existing latches are restored afterward. Ordinary modifier combinations still work.
 - **Key repeat:** Hold the middle of an arrow or a key with character corners for 350 ms to keep its main key pressed. The host supplies normal key repeat; slide to a corner before the centre hold commits.
 - **Turkish Q:** Select Turkish Q on both the phone and host. Shift symbols appear at the top right, AltGr symbols at the bottom right, and Shift+AltGr symbols at the bottom left. Right Alt is labelled AltGr. Caps' upper-left corner supplies the ISO `<` key, or `>` with Shift; its bottom-right corner types `>` directly.
-- **Touchpad:** Tap to click, use two fingers to scroll or right-click, or use the separate left/right button areas. After scrolling, lift every finger before starting a new pointer movement.
+- **Touchpad:** Tap to click, use two fingers to scroll or right-click, or use the separate left/right button areas. For one-finger vertical scrolling, start in the marked strip at the right edge, above the mouse-button area. The gesture keeps scrolling if the finger leaves the strip. After scrolling, lift every finger before starting a new pointer movement.
 - **Feedback:** A small preview above the most recently touched key shows its character or selected corner action, including Shift/AltGr/Fn labels. It moves to the side near the top edge and stays visible for 180 ms after release. The preview lets touches pass through. Regular keys also keep their highlight for 160 ms; Bluetooth key-up is immediate. Keyboard audio uses the media volume stream.
 
 ---
@@ -77,6 +77,7 @@ A smooth pointer surface with multi-touch gestures and optional modifier keys.
   - Two-finger drag: scroll vertically or horizontally.
   - Two-finger tap: right-click.
   - Three-finger tap: middle-click.
+- **One-Finger Edge Scrolling:** Start in the narrow strip at the far right, above the bottom mouse-button area, and slide up or down. The cursor stays still until every finger is lifted; ordinary pointer gestures keep moving the cursor when they enter the strip.
 - **Modifier Key Strips:** Add a strip of modifier keys (Ctrl, Alt, Shift, Meta) to the **Left**, **Right**, or turn it **Off** from the toolbar. This gives you easy access to shortcuts without covering the touchpad surface.
 - **Pointer & Scroll Speeds:** Adjust pointer and scrolling sensitivity from fine control (0.25x, 0.5x) to high speed (1.5x, 2.0x) from the toolbar.
 

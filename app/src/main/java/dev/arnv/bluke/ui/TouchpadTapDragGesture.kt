@@ -88,6 +88,13 @@ internal class TouchpadTapDragGesture(
         moved = false
     }
 
+    /** Entering the scroll rail must finish an earlier tap without arming a drag. */
+    fun finishPendingClick() {
+        val pending = lastReleaseTime != null
+        cancel()
+        if (pending) click()
+    }
+
     private fun click() {
         sendButton(1)
         sendButton(0)

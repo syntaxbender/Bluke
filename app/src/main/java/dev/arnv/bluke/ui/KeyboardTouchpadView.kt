@@ -198,7 +198,7 @@ fun KeyboardTouchpadView(
                         }
                     }
                     Text(
-                        text = "Tap to click · 2 fingers to scroll",
+                        text = "Scroll: 2 fingers / right edge",
                         color = Color.White.copy(alpha = 0.5f),
                         fontSize = 9.sp,
                         maxLines = 1,

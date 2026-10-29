@@ -5,6 +5,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TouchpadGesturePolicyTest {
+    @Test fun edgeScrollStartsOnlyInTheRightRailAboveTheMouseButtons() {
+        assertTrue(TouchpadGesturePolicy.startsEdgeScroll(390f, 100f, 400f, 300f, 24f))
+        assertTrue(TouchpadGesturePolicy.startsEdgeScroll(376f, 0f, 400f, 300f, 24f))
+        assertFalse(TouchpadGesturePolicy.startsEdgeScroll(375f, 100f, 400f, 300f, 24f))
+        assertFalse(TouchpadGesturePolicy.startsEdgeScroll(390f, 246f, 400f, 300f, 24f))
+        assertFalse(TouchpadGesturePolicy.startsEdgeScroll(400f, 100f, 400f, 300f, 24f))
+        assertFalse(TouchpadGesturePolicy.startsEdgeScroll(390f, -1f, 400f, 300f, 24f))
+    }
+
     @Test
     fun tapAllowsNormalFingerMotionButRejectsLongPressOrDrag() {
         assertTrue(TouchpadGesturePolicy.isTap(120, distanceSquaredPx = 100f, tapSlopPx = 12f))

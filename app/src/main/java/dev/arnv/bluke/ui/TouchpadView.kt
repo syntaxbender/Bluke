@@ -26,6 +26,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.draw.clip
@@ -778,6 +779,7 @@ fun TouchGestureLayer(
     var activeTouchPoints by remember { mutableStateOf<List<Offset>>(emptyList()) }
     var touchCount by remember { mutableIntStateOf(0) }
     var activeMouseButton by remember { mutableStateOf<Byte>(0) }
+    var isEdgeScrollActive by remember { mutableStateOf(false) }
 
     DisposableEffect(btManager, tapDrag) {
         onDispose {
@@ -807,6 +809,9 @@ fun TouchGestureLayer(
                 var multiTouchGesture = false
                 var gestureHasScrolled = false
                 var multiTouchMoved = false
+                var edgeScrollPointerId: PointerId? = null
+                var lastEdgeScrollY = 0f
+                val edgeWidthPx = TouchpadGesturePolicy.EDGE_SCROLL_WIDTH_DP.dp.toPx()
                 try {
                 awaitPointerEventScope {
                     while (true) {
@@ -830,15 +835,35 @@ fun TouchGestureLayer(
                             maxPointersInTap = downCount
                         }
 
+                        // The initial landing owns the gesture until every finger is lifted.
+                        // Entering the rail from a normal pointer drag must not change its meaning.
+                        if (pointerDownInfo.isEmpty() && downCount == 1) {
+                            val first = pressedChanges.single()
+                            if (!first.previousPressed && TouchpadGesturePolicy.startsEdgeScroll(
+                                first.position.x, first.position.y, size.width.toFloat(), size.height.toFloat(), edgeWidthPx,
+                            )) {
+                                isEdgeScrollActive = true
+                                edgeScrollPointerId = first.id
+                                lastEdgeScrollY = first.position.y
+                                lastActivePointerId = null
+                                accumulatedX = 0f
+                                accumulatedY = 0f
+                                accumulatedScrollY = 0f
+                                tapDrag.finishPendingClick()
+                            }
+                        }
+
                         // 1. Process Down Events for Taps
                         changes.forEach { change ->
                             if (change.pressed && !change.previousPressed) {
                                 pointerDownInfo[change.id] = change.uptimeMillis to change.position
                                 
-                                if (pointerDownInfo.size == 1) {
-                                    tapDrag.down(change.uptimeMillis, change.position.x, change.position.y)
-                                } else {
-                                    tapDrag.cancel()
+                                if (!isEdgeScrollActive) {
+                                    if (pointerDownInfo.size == 1) {
+                                        tapDrag.down(change.uptimeMillis, change.position.x, change.position.y)
+                                    } else {
+                                        tapDrag.cancel()
+                                    }
                                 }
                             }
                         }
@@ -865,7 +890,21 @@ fun TouchGestureLayer(
 
                         // A scroll owns the contact sequence until every finger is up. The finger
                         // left on the surface after a scroll must not become a cursor drag.
-                        if (downCount == 1 && !multiTouchGesture) {
+                        if (isEdgeScrollActive) {
+                            changes.firstOrNull { it.id == edgeScrollPointerId }?.let { pointer ->
+                                accumulatedScrollY += (pointer.position.y - lastEdgeScrollY) * 0.06f * scrollSensitivity
+                                lastEdgeScrollY = pointer.position.y
+                            }
+                            val now = System.currentTimeMillis()
+                            if (downCount == 0 || now - lastReportTime >= 10L) {
+                                val sendScroll = accumulatedScrollY.roundToInt().coerceIn(-127, 127)
+                                if (sendScroll != 0) {
+                                    btManager.sendMouseReport(0, 0, 0, sendScroll.toByte())
+                                    accumulatedScrollY -= sendScroll
+                                    lastReportTime = now
+                                }
+                            }
+                        } else if (downCount == 1 && !multiTouchGesture) {
                             isTwoFingerActive = false
                             accumulatedScrollY = 0f
                             val pointer = changes.first { it.pressed }
@@ -977,9 +1016,9 @@ fun TouchGestureLayer(
                         changes.forEach { change ->
                             if (change.changedToUp()) {
                                 val downInfo = pointerDownInfo.remove(change.id)
-                                if (tapDrag.release()) {
+                                if (!isEdgeScrollActive && tapDrag.release()) {
                                     activeMouseButton = 0
-                                } else if (downInfo != null) {
+                                } else if (!isEdgeScrollActive && downInfo != null) {
                                     val height = size.height
                                     val touchYStart = downInfo.second.y
                                     if (touchYStart > height * 0.82f) {
@@ -1020,6 +1059,9 @@ fun TouchGestureLayer(
                         }
 
                         if (downCount == 0) {
+                            isEdgeScrollActive = false
+                            edgeScrollPointerId = null
+                            accumulatedScrollY = 0f
                             maxPointersInTap = 0
                             multiTouchGesture = false
                             gestureHasScrolled = false
@@ -1041,12 +1083,28 @@ fun TouchGestureLayer(
                     accumulatedY = 0f
                     accumulatedScrollY = 0f
                     isTwoFingerActive = false
+                    isEdgeScrollActive = false
                     isTouchActive = false
                     touchCount = 0
                     activeTouchPoints = emptyList()
                 }
             }
     ) {
+        if (!showNumpadLed) {
+            Box(
+                Modifier.align(AbsoluteAlignment.TopRight)
+                    .width(TouchpadGesturePolicy.EDGE_SCROLL_WIDTH_DP.dp)
+                    .fillMaxHeight(TouchpadGesturePolicy.BUTTON_AREA_TOP_FRACTION)
+                    .background(Color.White.copy(alpha = if (isEdgeScrollActive) 0.08f else 0.025f))
+                    .testTag("touchpad_edge_scroll"),
+            ) {
+                Box(Modifier.align(AbsoluteAlignment.CenterLeft).width(1.dp).fillMaxHeight()
+                    .background(Color.White.copy(alpha = 0.08f)))
+                Icon(Icons.Default.UnfoldMore, contentDescription = "Vertical scroll",
+                    tint = Color.White.copy(alpha = if (isEdgeScrollActive) 0.75f else 0.35f),
+                    modifier = Modifier.align(Alignment.Center).size(16.dp))
+            }
+        }
         // Draw the bottom boundaries as subtle hints for clicking
         Box(
             modifier = Modifier.fillMaxSize()

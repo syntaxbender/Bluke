@@ -9,6 +9,20 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TouchpadTapDragGestureTest {
+    @Test fun enteringTheScrollRailFinishesAnEarlierTapWithoutArmingADrag() = runTest {
+        val reports = mutableListOf<Byte>()
+        val gesture = TouchpadTapDragGesture(this, reports::add, {})
+        gesture.queueClick(100, 20f, 20f)
+        gesture.finishPendingClick()
+        assertEquals(listOf<Byte>(1, 0), reports)
+        assertFalse(gesture.move())
+        assertFalse(gesture.release())
+        advanceTimeBy(1_000)
+        assertEquals(listOf<Byte>(1, 0), reports)
+        gesture.finishPendingClick()
+        assertEquals(listOf<Byte>(1, 0), reports)
+    }
+
     @Test fun singleClickWaitsForMainDelay() = runTest {
         val reports = mutableListOf<Byte>()
         val gesture = TouchpadTapDragGesture(this, reports::add, {})

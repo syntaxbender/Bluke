@@ -697,4 +697,27 @@ class KeyboardTouchpadViewTest {
             compose.onNodeWithTag("key_AltGr", useUnmergedTree = true).assertIsNotSelected()
         }
     }
+
+    @Test fun theRightEdgeScrollRailWorksWithALatchedCtrlWithoutMovingThePointer() {
+        show()
+        tapModifier("Ctrl")
+        awaitReports()
+        HidShadow.reports.clear()
+        val pad = compose.onNodeWithTag("split_touch_surface").fetchSemanticsNode().boundsInRoot
+        val rail = compose.onNodeWithTag("touchpad_edge_scroll").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
+        assertEquals(pad.right, rail.right, 1f)
+        assertTrue(rail.bottom < pad.bottom)
+        compose.onRoot().performTouchInput {
+            down(0, rail.center)
+            moveBy(0, Offset(0f, 70f))
+        }
+        compose.onRoot().captureRoboImage(filePath = "build/outputs/screenshots/keyboard-touchpad-edge-scroll.png")
+        compose.onRoot().performTouchInput { up(0) }
+        awaitReports()
+        val reports = HidShadow.reports.filter { it.first == 2 }.map { it.second }
+        assertTrue(reports.any { it[3] != 0.toByte() })
+        assertTrue(reports.all { it[0] == 0.toByte() && it[1] == 0.toByte() && it[2] == 0.toByte() })
+        compose.onAllNodesWithTag("key_Ctrl", useUnmergedTree = true).onFirst().assertIsSelected()
+        assertFalse(HidShadow.reports.any { (id, bytes) -> id == 1 && bytes[0] == 0.toByte() })
+    }
 }

@@ -153,4 +153,101 @@ class TouchpadScrollGestureTest {
         assertTrue(reports.all { it[1] == 0.toByte() && it[2] == 0.toByte() && it[3] == 0.toByte() })
     }
 
+    @Test fun aSingleFingerOnTheRightEdgeScrollsInBothDirectionsWithoutMovingOrClicking() {
+        show()
+        val rail = compose.onNodeWithTag("touchpad_edge_scroll").fetchSemanticsNode().boundsInRoot
+        listOf(80f, -80f).forEach { distance ->
+            HidShadow.reports.clear()
+            compose.onRoot().performTouchInput {
+                down(0, rail.center)
+                moveBy(0, Offset(0f, distance))
+                up(0)
+            }
+            awaitReports()
+            val reports = HidShadow.reports.filter { it.first == 2 }.map { it.second }
+            assertTrue(reports.any { if (distance > 0) it[3] > 0 else it[3] < 0 })
+            assertTrue("The edge must only send wheel movement", reports.all {
+                it[0] == 0.toByte() && it[1] == 0.toByte() && it[2] == 0.toByte()
+            })
+        }
+    }
+
+    @Test fun anEdgeScrollKeepsOwnershipOutsideTheRailAndUntilEveryFingerIsUp() {
+        show()
+        val pad = compose.onNodeWithTag("touch_surface").fetchSemanticsNode().boundsInRoot
+        val rail = compose.onNodeWithTag("touchpad_edge_scroll").fetchSemanticsNode().boundsInRoot
+        compose.onRoot().performTouchInput {
+            down(0, rail.center)
+            moveBy(0, Offset(-100f, 60f))
+            down(1, pad.center)
+            up(0)
+            moveBy(1, Offset(30f, 30f))
+            up(1)
+        }
+        awaitReports()
+        val reports = HidShadow.reports.filter { it.first == 2 }.map { it.second }
+        assertTrue(reports.any { it[3] != 0.toByte() })
+        assertTrue(reports.all { it[0] == 0.toByte() && it[1] == 0.toByte() && it[2] == 0.toByte() })
+        HidShadow.reports.clear()
+        compose.onRoot().performTouchInput {
+            down(0, pad.center)
+            moveBy(0, Offset(50f, -30f))
+            up(0)
+        }
+        awaitReports()
+        assertTrue("A fresh contact must move the pointer again", HidShadow.reports.any { (id, bytes) ->
+            id == 2 && (bytes[1] != 0.toByte() || bytes[2] != 0.toByte())
+        })
+        assertTrue(HidShadow.reports.filter { it.first == 2 }.all { it.second[3] == 0.toByte() })
+    }
+
+    @Test fun enteringTheRailDuringAnOrdinaryPointerDragDoesNotStartScrolling() {
+        show()
+        val rail = compose.onNodeWithTag("touchpad_edge_scroll").fetchSemanticsNode().boundsInRoot
+        compose.onRoot().performTouchInput {
+            down(0, rail.center - Offset(100f, 0f))
+            moveTo(0, rail.center + Offset(0f, 60f))
+            up(0)
+        }
+        awaitReports()
+        val reports = HidShadow.reports.filter { it.first == 2 }.map { it.second }
+        assertTrue(reports.any { it[1] != 0.toByte() || it[2] != 0.toByte() })
+        assertTrue(reports.all { it[3] == 0.toByte() })
+    }
+
+    @Test fun theBottomRightMouseButtonRemainsUsableBelowTheScrollRail() {
+        show()
+        val pad = compose.onNodeWithTag("touch_surface").fetchSemanticsNode().boundsInRoot
+        compose.onRoot().performTouchInput { click(Offset(pad.right - 10f, pad.bottom - 10f)) }
+        awaitReports()
+        val reports = HidShadow.reports.filter { it.first == 2 }.map { it.second }
+        assertTrue(reports.any { it[0] == 2.toByte() })
+        assertEquals(0.toByte(), reports.last()[0])
+        assertTrue(reports.all { it[3] == 0.toByte() })
+    }
+
+    @Test fun edgeTapsDoNotClickAndAnEarlierNormalTapIsNotLostOrTurnedIntoADrag() {
+        show()
+        val rail = compose.onNodeWithTag("touchpad_edge_scroll").fetchSemanticsNode().boundsInRoot
+        compose.onRoot().performTouchInput { click(rail.center) }
+        compose.mainClock.advanceTimeBy(400L)
+        awaitReports()
+        assertTrue(HidShadow.reports.filter { it.first == 2 }.all { it.second[0] == 0.toByte() })
+        HidShadow.reports.clear()
+        compose.onRoot().performTouchInput {
+            click(rail.center - Offset(60f, 0f))
+            advanceEventTime(50L)
+            down(0, rail.center)
+            moveBy(0, Offset(0f, 80f))
+            up(0)
+        }
+        compose.mainClock.advanceTimeBy(400L)
+        awaitReports()
+        val reports = HidShadow.reports.filter { it.first == 2 }.map { it.second }
+        assertEquals("Only the earlier normal tap should click", 1, reports.count { it[0] == 1.toByte() })
+        assertTrue(reports.any { it[3] != 0.toByte() })
+        assertTrue("Scroll reports must never hold a drag button", reports.filter { it[3] != 0.toByte() }.all { it[0] == 0.toByte() })
+        assertEquals(0.toByte(), reports.last()[0])
+    }
+
 }
